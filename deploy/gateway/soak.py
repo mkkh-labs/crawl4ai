@@ -49,9 +49,14 @@ DEFAULT_URLS = [
 # ── container sampling ───────────────────────────────────────────────────────
 
 
-def _docker(*args: str, timeout: int = 30) -> str:
+def _docker(*args: str, timeout: int = 30, stdin: str | None = None) -> str:
     return subprocess.run(
-        ["docker", *args], capture_output=True, text=True, timeout=timeout, check=True
+        ["docker", *args],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=True,
+        input=stdin,
     ).stdout.strip()
 
 
@@ -131,6 +136,67 @@ class JobResult:
     latency_s: float
     ok: bool
     error: str | None = None
+
+
+def run_job_via_exec(container: str, token: str, url: str, timeout: int) -> JobResult:
+    """Submit a crawl from inside the container's own namespace.
+
+    The gateway publishes no host port by design, so a host-side HTTP client
+    cannot reach it. Rather than publish one for the soak -- which would weaken
+    the very property under test -- drive it through `docker exec` + curl. The
+    request still traverses gunicorn, the auth gate and every middleware; only
+    the network hop differs, and the n8n network hop is already covered by
+    deploy/gateway/e2e.py.
+    """
+    payload = json.dumps(
+        {
+            "urls": [url],
+            "browser_config": {},
+            "crawler_config": {"stream": False, "cache_mode": "bypass"},
+        }
+    )
+    started = time.time()
+    try:
+        out = _docker(
+            "exec",
+            "-i",
+            container,
+            "curl",
+            "-sS",
+            "-m",
+            str(timeout),
+            "-o",
+            "/tmp/soak_body.json",
+            "-w",
+            "%{http_code}",
+            "-X",
+            "POST",
+            "http://127.0.0.1:11235/crawl",
+            "-H",
+            "Content-Type: application/json",
+            "-H",
+            f"Authorization: Bearer {token}",
+            "--data",
+            "@-",
+            timeout=timeout + 30,
+            stdin=payload,
+        )
+        status = int(out.strip().splitlines()[-1])
+        body = json.loads(
+            _docker("exec", container, "cat", "/tmp/soak_body.json") or "{}"
+        )
+        ok = status == 200 and bool(body.get("success")) and bool(body.get("results"))
+        return JobResult(
+            url,
+            status,
+            round(time.time() - started, 3),
+            ok,
+            None if ok else f"HTTP {status}",
+        )
+    except Exception as exc:
+        return JobResult(
+            url, None, round(time.time() - started, 3), False, type(exc).__name__
+        )
 
 
 def run_job(base_url: str, token: str, url: str, timeout: int) -> JobResult:
@@ -241,6 +307,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--baseline-samples", type=int, default=4)
     ap.add_argument("--timeout-s", type=int, default=300)
     ap.add_argument("--urls", nargs="*", default=DEFAULT_URLS)
+    ap.add_argument(
+        "--via",
+        choices=("docker-exec", "http"),
+        default="docker-exec",
+        help="how to submit crawls; docker-exec needs no host-published port",
+    )
     ap.add_argument("--out", default="docs/implementation/soak-evidence.json")
     args = ap.parse_args(argv)
 
@@ -269,7 +341,10 @@ def main(argv: list[str] | None = None) -> int:
     jobs: list[JobResult] = []
     for i in range(args.jobs):
         url = args.urls[i % len(args.urls)]
-        jobs.append(run_job(args.base_url, token, url, args.timeout_s))
+        if args.via == "docker-exec":
+            jobs.append(run_job_via_exec(args.container, token, url, args.timeout_s))
+        else:
+            jobs.append(run_job(args.base_url, token, url, args.timeout_s))
         during.append(sample_container(args.container, "traffic", t0))
 
     print(f"[soak] cooldown: {args.cooldown_s}s")
@@ -283,6 +358,7 @@ def main(argv: list[str] | None = None) -> int:
     evidence = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "container": args.container,
+        "transport": args.via,
         "jobs_requested": args.jobs,
         "jobs_succeeded": sum(1 for j in jobs if j.ok),
         "jobs_failed": sum(1 for j in jobs if not j.ok),

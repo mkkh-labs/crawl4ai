@@ -99,7 +99,15 @@ def crawl_once(base_url, token, url, timeout, crawler_config):
     return _request(base_url, c.CRAWL_ENDPOINT, token, payload, timeout)
 
 
-def run_with_retries(base_url, token, url, timeout, crawler_config, sleeper=time.sleep):
+def run_with_retries(
+    base_url,
+    token,
+    url,
+    timeout,
+    crawler_config,
+    crawler_version,
+    sleeper=time.sleep,
+):
     """One logical run: attempts, classification, bounded retries, provenance."""
     run_id = f"run-{uuid.uuid4().hex[:12]}"
     started = _now()
@@ -143,7 +151,7 @@ def run_with_retries(base_url, token, url, timeout, crawler_config, sleeper=time
         source_url=url,
         started_at=started,
         finished_at=_now(),
-        crawler_version="unknown",
+        crawler_version=crawler_version,
         browser_config={},
         crawler_config=crawler_config,
         raw_response=body,
@@ -172,6 +180,24 @@ def main(argv=None) -> int:
     checks: dict[str, object] = {}
     failures: list[str] = []
 
+    # Provenance must carry the version that actually served the run, so read it
+    # from the live service rather than assuming the local checkout's version.
+    health_status, health_body, _ = _request(
+        args.base_url, "/health", None, None, 30, method="GET"
+    )
+    crawler_version = (
+        (health_body or {}).get("version") if health_status == 200 else None
+    )
+    checks["health_status"] = health_status
+    checks["crawler_version"] = crawler_version
+    if not crawler_version:
+        failures.append(
+            f"could not read crawler version from /health (status {health_status})"
+        )
+        crawler_version = "unknown"
+    else:
+        print(f"[e2e] gateway reports version {crawler_version}")
+
     # ── AC-03: authentication is mandatory ──────────────────────────────────
     print("[e2e] negative auth tests")
     no_tok, _, _ = crawl_once(args.base_url, None, args.urls[0], 30, cfg)
@@ -192,7 +218,12 @@ def main(argv=None) -> int:
     runs = []
     for i in range(args.runs):
         run, _ = run_with_retries(
-            args.base_url, token, args.urls[i % len(args.urls)], args.timeout_s, cfg
+            args.base_url,
+            token,
+            args.urls[i % len(args.urls)],
+            args.timeout_s,
+            cfg,
+            crawler_version,
         )
         runs.append(run.to_dict())
         print(f"  {i + 1:>2}/{args.runs} {run.status:<16} {run.source_url}")
@@ -218,6 +249,11 @@ def main(argv=None) -> int:
         if f != "failure_class" and not r.get(f)
     ]
     checks["provenance_complete"] = not missing
+    stale = {r["crawler_version"] for r in runs} - {crawler_version}
+    if stale or crawler_version == "unknown":
+        failures.append(
+            f"AC-09: crawler_version not resolved from the service: {stale or crawler_version}"
+        )
     if missing:
         failures.append(f"AC-09: provenance fields missing: {missing[:5]}")
     if len({r["run_id"] for r in runs}) != len(runs):
@@ -250,6 +286,7 @@ def main(argv=None) -> int:
         "http://169.254.169.254/latest/meta-data/",
         60,
         cfg,
+        crawler_version,
         sleeper=lambda _s: None,
     )
     forced["ssrf_metadata"] = {
@@ -262,7 +299,13 @@ def main(argv=None) -> int:
 
     # Terminal: malformed target URL.
     run, st = run_with_retries(
-        args.base_url, token, "not-a-url", 60, cfg, sleeper=lambda _s: None
+        args.base_url,
+        token,
+        "not-a-url",
+        60,
+        cfg,
+        crawler_version,
+        sleeper=lambda _s: None,
     )
     forced["invalid_url"] = {
         "status": st,
