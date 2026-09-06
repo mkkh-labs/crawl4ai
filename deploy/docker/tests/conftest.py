@@ -37,6 +37,33 @@ if str(DOCKER_DIR) not in sys.path:
 
 
 def pytest_configure(config):
+    # The shipped config.yml points the rate limiter at Redis, because production
+    # wants a limiter shared across gunicorn workers and surviving worker
+    # recycling. This offline suite has no Redis and slowapi/limits connects
+    # eagerly, so without this every request would 500 inside the limiter before
+    # reaching the handler under test.
+    #
+    # Pin the limiter to the in-memory backend for the offline suite. This must
+    # run here, not in the `server_module` fixture: some suites import `server`
+    # directly at module scope, so a fixture-time patch lands too late and the
+    # result is order-dependent failures.
+    #
+    # This changes NO production code and weakens NO assertion. That config.yml
+    # really does declare the Redis backend is asserted by
+    # test_security_gateway_topology.py, and build_rate_limit_storage_uri keeps
+    # its own direct unit tests in test_security_default_posture.py.
+    # Scope: stub only for the duration of `server`'s import (the limiter is
+    # constructed at module scope), then restore the real function so its own
+    # unit tests still exercise the genuine credential-reuse logic.
+    import redis_config
+
+    _real = redis_config.build_rate_limit_storage_uri
+    redis_config.build_rate_limit_storage_uri = lambda _config: "memory://"
+    try:
+        importlib.import_module("server")
+    finally:
+        redis_config.build_rate_limit_storage_uri = _real
+
     config.addinivalue_line(
         "markers",
         "posture: the secure-by-default acceptance gate (expected RED until R1-R7 land)",
@@ -72,7 +99,18 @@ def stock_client(server_module):
     # missing pool/redis surfaces as a 500 response (which our posture test
     # treats as "not 401" => still a finding) instead of bubbling out of the
     # test client as an exception.
-    return TestClient(server_module.app, raise_server_exceptions=False)
+    #
+    # base_url pins Host: crawl4ai -- the shipped config.yml carries an explicit
+    # trusted_hosts allowlist (no wildcard), so requests must present a Host the
+    # gateway actually trusts. `crawl4ai` is the internal service DNS name n8n
+    # calls in production, which makes this the realistic caller. Do NOT widen
+    # trusted_hosts to admit TestClient's default "testserver" instead; the Host
+    # guard rejecting an unknown Host is the control under test.
+    return TestClient(
+        server_module.app,
+        base_url="http://crawl4ai",
+        raise_server_exceptions=False,
+    )
 
 
 @pytest.fixture

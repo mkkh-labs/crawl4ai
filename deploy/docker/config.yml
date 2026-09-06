@@ -2,10 +2,12 @@
 app:
   title: "Crawl4AI API"
   version: "1.0.0"
-  # Loopback by default. Exposing on 0.0.0.0 requires a credential
-  # (CRAWL4AI_API_TOKEN); the startup auth guard refuses an open non-loopback
-  # bind without one. Put a TLS-terminating reverse proxy in front for exposure.
-  host: "127.0.0.1"
+  # Gateway posture: bind all interfaces so n8n can reach the service over the
+  # private automation_internal network. This is NOT a public exposure -- the
+  # compose service publishes no host port. Because 0.0.0.0 is non-loopback the
+  # startup auth guard now REFUSES to start without CRAWL4AI_API_TOKEN, which is
+  # the intended fail-closed behavior for this fork.
+  host: "0.0.0.0"
   port: 11235
   reload: False
   workers: 1
@@ -50,7 +52,9 @@ rate_limiting:
   enabled: True
   default_limit: "1000/minute"
   trusted_proxies: []
-  storage_uri: "memory://"  # Use "redis://localhost:6379" for production
+  # Redis-backed so the limiter is shared across gunicorn workers and
+  # survives worker recycling; memory:// resets per worker.
+  storage_uri: "redis://localhost:6379"
 
 # Security Configuration
 # WARNING: For production deployments, enable security and use proper SECRET_KEY:
@@ -62,7 +66,9 @@ security:
   jwt_enabled: false
   api_token: ""  # When set, /token endpoint requires this secret to issue JWTs
   https_redirect: false
-  trusted_hosts: ["*"]
+  # Explicit Host allowlist: the internal service DNS name plus loopback for
+  # in-container health checks and MCP self-calls. No wildcard.
+  trusted_hosts: ["crawl4ai", "localhost", "127.0.0.1"]
   cors_allow_origins: []  # deny-by-default; list explicit origins to allow CORS
   headers:
     x_content_type_options: "nosniff"

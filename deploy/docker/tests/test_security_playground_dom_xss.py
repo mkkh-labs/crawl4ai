@@ -23,12 +23,12 @@ import re
 import sys
 import unittest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+)
 
 PLAYGROUND = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__), "..", "static", "playground", "index.html"
-    )
+    os.path.join(os.path.dirname(__file__), "..", "static", "playground", "index.html")
 )
 
 # Assignment forms that hand a string to the HTML parser.
@@ -72,9 +72,7 @@ class TestPlaygroundDomXss(unittest.TestCase):
         """No code path may hand a string to the HTML parser."""
         for pattern in LIVE_HTML_SINKS:
             hits = [
-                line.strip()
-                for line in self.code.splitlines()
-                if pattern.search(line)
+                line.strip() for line in self.code.splitlines() if pattern.search(line)
             ]
             self.assertEqual(
                 [], hits, f"live-HTML sink {pattern.pattern!r} reintroduced: {hits}"
@@ -101,9 +99,7 @@ class TestPlaygroundDomXss(unittest.TestCase):
 
     def test_response_content_is_written_via_textcontent(self):
         """Crawl output reaches the viewer only through textContent."""
-        writes = re.findall(
-            r"#response-content code'\)\s*\.\s*(\w+)\s*=", self.code
-        )
+        writes = re.findall(r"#response-content code'\)\s*\.\s*(\w+)\s*=", self.code)
         self.assertTrue(writes, "no #response-content writes found")
         for prop in writes:
             self.assertIn(

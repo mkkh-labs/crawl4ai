@@ -1,14 +1,16 @@
 # Shared configuration for all environments
 x-base-config: &base-config
-  ports:
-    - "11235:11235"  # Gunicorn port
+  # NO host `ports` mapping. This is a private gateway: n8n reaches it at
+  # http://crawl4ai:11235 over the automation_internal network. Publishing the
+  # crawler port on the host is a release blocker (AC-03).
   env_file:
     # API keys (create from .llm.env.example); optional so a fresh clone runs.
     - path: .llm.env
       required: false
   environment:
-    # Auth token passthrough from the host shell (overwrites .llm.env).
-    - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}
+    # Auth token is REQUIRED. `:?` makes compose fail closed rather than
+    # starting an unauthenticated service. Export it before `docker compose up`.
+    - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:?set CRAWL4AI_API_TOKEN before deploying the gateway}
     # Uncomment to set default environment variables (will overwrite .llm.env)
     # - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     # - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
@@ -58,7 +60,7 @@ services:
   crawl4ai:
     # 1. Default: Pull multi-platform test image from Docker Hub
     # 2. Override with local image via: IMAGE=local-test docker compose up
-    image: ${IMAGE:-unclecode/crawl4ai:${TAG:-latest}}
+    image: ${IMAGE:-unclecode/crawl4ai:${TAG:-0.9.3}}
     
     # Local build config (used with --build)
     build:
@@ -70,3 +72,13 @@ services:
     
     # Inherit shared config
     <<: *base-config
+
+    # Private service DNS: n8n resolves `crawl4ai` on this network.
+    networks:
+      - automation_internal
+
+# Created out-of-band (see the Deploy command in CLAUDE.md) and shared with the
+# n8n stack, so it is declared external rather than owned by this file.
+networks:
+  automation_internal:
+    external: true
