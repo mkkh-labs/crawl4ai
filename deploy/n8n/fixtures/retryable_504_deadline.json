@@ -1,0 +1,5 @@
+{
+  "http_status": 504,
+  "retry_after": "12",
+  "body": {"detail": "Crawl exceeded the wall-clock deadline"}
+}

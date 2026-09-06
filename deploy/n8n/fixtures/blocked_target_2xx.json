@@ -1,0 +1,14 @@
+{
+  "http_status": 200,
+  "body": {
+    "success": false,
+    "results": [
+      {
+        "url": "https://example.com/gated",
+        "success": false,
+        "status_code": 403,
+        "error_message": "Navigation failed: 403 Forbidden (bot detection challenge served)"
+      }
+    ]
+  }
+}

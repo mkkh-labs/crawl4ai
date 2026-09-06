@@ -1,0 +1,8 @@
+{
+  "http_status": 422,
+  "body": {
+    "detail": [
+      {"loc": ["body", "urls"], "msg": "List should have at least 1 item", "type": "too_short"}
+    ]
+  }
+}
