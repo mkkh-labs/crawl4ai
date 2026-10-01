@@ -143,11 +143,30 @@ the patched (PyJWT 2.13.0) image after the drill.
 | AC-10 | Forced failures create no silent path | **PASS** | three forced cases, all terminal and classified |
 | AC-11 | Process count returns to stable band after soak | **PASS (limited workload)** | 11 → 11; see limitation above |
 | AC-12 | Technical fixtures preserve critical code blocks | **PASS** | golden corpus, 88 tests |
-| AC-13 | P0/P1 security findings are zero | **FAIL** | 1 unpatchable dependency finding, below |
+| AC-13 | P0/P1 security findings are zero | **FAIL** | 19 findings (2026-10-01 re-audit); see correction below |
 | AC-14 | Rollback to prior safe artifact tested | **PASS** | drill above, 9s |
 | AC-15 | Revised production score ≥ 90/100 | **NOT SCORED** | no scoring rubric was supplied; not invented |
 
 ## AC-13 detail — the one failing gate
+
+> **CORRECTION 2026-10-01.** The figures in this section were produced on 2026-09-06 by a
+> `pip-audit` run that was partly served from a failing cache (it emitted
+> `Cache entry deserialization failed, entry ignored`). A clean re-run on 2026-10-01 returned
+> **19 findings across 4 packages**, including **13 against PyJWT 2.13.0 itself** — the version this
+> build upgraded *to*. The analysis below is therefore superseded in its counts, though its
+> reachability reasoning for nltk still holds. Current ground truth:
+>
+> | Package | Installed | Fix available | Findings |
+> |---|---|---|---|
+> | `pyjwt` | 2.13.0 | **2.15.0** | 13 (one, `CVE-2026-103001`, has no fix) |
+> | `anyio` | 4.9.0 | **4.14.2** | 2 |
+> | `urllib3` | 2.7.0 | **2.8.0** | 3 |
+> | `nltk` | 3.10.3 | none | 1 (`PYSEC-2026-3740`) |
+>
+> AC-13 remains **FAIL**, now for a larger reason than recorded below. Remediation is task T1-1 of
+> `CLOSEOUT-RUNBOOK.md`; the two unfixable advisories go to its owner-decision gate T2-GATE-1.
+> This notice is deliberately additive — the original text is left intact so the correction is
+> visible rather than silent.
 
 `pip-audit --strict` originally reported **13 findings in 2 packages**.
 
