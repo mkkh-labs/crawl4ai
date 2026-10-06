@@ -2,7 +2,7 @@
 
 **Audience:** a fresh autonomous coding session (Codex) with shell + git + Docker access.
 **Repo:** `mkkh-labs/crawl4ai` · **Branch:** `build/crawl4ai-self-hosted-gateway` · **Head at authoring:** `ca18033` (10 commits, unpushed)
-**Authored:** 2026-10-01 · **Prior state:** M1–M9 complete, DEPLOY validated on host, verdict CONDITIONAL GO (13/15 AC pass)
+**Authored:** 2026-10-01 · **Refreshed:** 2026-10-06 · **Prior state:** M1–M9 complete, DEPLOY validated on host, verdict CONDITIONAL GO (13/15 AC pass)
 
 ---
 
@@ -89,16 +89,37 @@ dependencies and every downstream result has to be thrown away.
 
 ### T1-1 — Dependency remediation (**highest priority; blocks AC-13**)
 
-**Context you need:** a `pip-audit` run on 2026-10-01 returned **19 findings in 4 packages**. An
-earlier run in the prior session returned only 1 because it was served from a failing cache
-(`Cache entry deserialization failed`) — do not trust any earlier number in this repo's docs.
+**Context you need:** this table drifts fast. It read **19 findings / 4 packages** on 2026-10-01
+and **28 findings / 6 packages** on 2026-10-06 — +9 findings in five days, including a package that
+was not previously implicated at all. An earlier run on 2026-09-06 reported just 1 because it was
+served from a failing cache (`Cache entry deserialization failed`). **Treat every number below as
+already stale and re-derive it in step 1.** Do not plan the work from this table.
+
+Snapshot as of 2026-10-06:
 
 | Package | Installed | Fix available | Findings | Pinned in |
 |---|---|---|---|---|
-| `pyjwt` | 2.13.0 | **2.15.0** | 13 (12 fixed by 2.14.0/2.15.0; `CVE-2026-103001` has **no fix**) | `deploy/docker/requirements.txt:13` |
-| `anyio` | 4.9.0 | **4.14.2** | 2 | `deploy/docker/requirements.txt:12` |
+| `pyjwt` | 2.13.0 | **2.15.0** | 14 (one, `PYSEC-2026-4146`, has **no fix**) | `deploy/docker/requirements.txt:13` |
+| `pypdf` | 6.17.0 | **6.19.0** | 7 | transitive (PDF processor) |
 | `urllib3` | 2.7.0 | **2.8.0** | 3 | transitive |
+| `anyio` | 4.9.0 | **4.14.2** | 2 | `deploy/docker/requirements.txt:12` |
+| `multidict` | 6.7.1 | **6.9.1** | 1 | transitive |
 | `nltk` | 3.10.3 | **none** | 1 (`PYSEC-2026-3740`) | `requirements.txt:25`, `pyproject.toml:37` |
+
+**`pypdf` is the one to handle most carefully.** It is the parser behind
+`crawl4ai/processors/pdf/`, which is exactly where four of the five v0.9.3 blocker families live
+(arbitrary image write, SSRF, byte/page caps, HTML escaping). A pypdf major-minor bump can change
+page-count and parsing behavior, so after bumping it you must re-run the PDF families specifically
+and compare against the pre-bump baseline, not just the aggregate count:
+
+```bash
+.venv/bin/python -m pytest tests/unit/test_pdf_download_limits.py \
+  tests/unit/test_pdf_html_escaping.py \
+  deploy/docker/tests/test_security_pdf_image_write.py -q
+```
+
+If a PDF security test fails after the pypdf bump, that is a **blocking finding**, not a test to
+adjust. Report it, pin pypdf at the last good version, and raise it at T2-GATE-1.
 
 **Steps:**
 
@@ -128,8 +149,10 @@ earlier run in the prior session returned only 1 because it was served from a fa
    secret and no JWK path; a 2.x API change here is small and local.
 
 **Acceptance (all must hold):**
-- [ ] `audit-after.json` contains findings **only** for `nltk PYSEC-2026-3740` and `pyjwt CVE-2026-103001`.
-- [ ] Both remaining findings have `fix_versions: []` (prove unfixability, don't assert it).
+- [ ] `audit-after.json` contains **only** advisories whose `fix_versions` is empty. Every finding
+      with an available fix must be gone. Do not match against a hardcoded ID list — IDs change
+      (the no-fix pyjwt advisory was `CVE-2026-103001` on 10-01 and `PYSEC-2026-4146` on 10-06).
+- [ ] For each remaining finding, print its `fix_versions` to prove unfixability rather than asserting it.
 - [ ] Security gate still 399 passed / 1 xfailed, exit 0.
 - [ ] No test was altered.
 
