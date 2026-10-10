@@ -37,7 +37,14 @@ jobs:
           pip install pip-audit
 
       - name: Audit installed dependencies
-        run: pip-audit --strict --progress-spinner=off
+        # pip-audit exits non-zero on any finding; the gate below decides.
+        # Only advisories with no published fix may be waived, and a waiver
+        # lapses automatically when a fix ships (deploy/gateway/audit_gate.py).
+        run: |
+          pip-audit --strict --progress-spinner=off --format json \
+            --output pip-audit.json || true
+          python deploy/gateway/audit_gate.py pip-audit.json \
+            --exceptions deploy/gateway/audit-exceptions.json
 
   sbom:
     runs-on: ubuntu-latest
