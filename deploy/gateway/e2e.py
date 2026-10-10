@@ -9,7 +9,9 @@ same deploy/n8n/contract.py the workflow contract is specified by. Testing a
 reimplementation of the contract would prove nothing about the contract.
 
 Covers the DEPLOY acceptance items:
+  AC-01  the live service reports a version at or above MIN_SAFE_VERSION
   AC-03  unauthenticated and bad-token requests are refused
+  AC-04  a dict-wrapped forbidden config (GHSA-5w5p-vcv6-mm3f) is refused
   AC-09  every run carries the required provenance fields
   AC-10  forced retryable and terminal failures produce no silent success
 
@@ -51,10 +53,49 @@ REQUIRED_PROVENANCE = (
     "failure_class",
 )
 
+#: Oldest release carrying every known security fix (v0.9.4 closes
+#: GHSA-5w5p-vcv6-mm3f, GHSA-wh5w-hmj3-vgg7 and GHSA-f77g-77vp-r96v).
+MIN_SAFE_VERSION = (0, 9, 4)
+
+#: GHSA-5w5p-vcv6-mm3f probe: a forbidden LLMConfig hidden behind the
+#: {"type": "dict"} envelope. A vulnerable server rebuilds it as trusted and
+#: resolves api_token from its own environment. base_url is a closed loopback
+#: port, so even a vulnerable server sends nothing off-box.
+LAUNDERING_PROBE_CONFIG = {
+    "type": "CrawlerRunConfig",
+    "extraction_strategy": {
+        "type": "dict",
+        "value": {
+            "type": "LLMExtractionStrategy",
+            "params": {
+                "llm_config": {
+                    "type": "dict",
+                    "value": {
+                        "type": "LLMConfig",
+                        "params": {
+                            "provider": "openai/gpt-4o-mini",
+                            "api_token": "env:CRAWL4AI_API_TOKEN",
+                            "base_url": "http://127.0.0.1:9/",
+                        },
+                    },
+                }
+            },
+        },
+    },
+}
+
 REPRESENTATIVE_URLS = [
     "https://example.com/",
     "https://www.iana.org/help/example-domains",
 ]
+
+
+def version_tuple(version: str) -> tuple:
+    """'0.9.4' -> (0, 9, 4); anything unparseable sorts below every release."""
+    try:
+        return tuple(int(part) for part in version.split(".")[:3])
+    except (AttributeError, ValueError):
+        return (-1,)
 
 
 def _now() -> str:
@@ -197,6 +238,11 @@ def main(argv=None) -> int:
         crawler_version = "unknown"
     else:
         print(f"[e2e] gateway reports version {crawler_version}")
+        if version_tuple(crawler_version) < MIN_SAFE_VERSION:
+            failures.append(
+                f"AC-01: gateway reports {crawler_version}, below the minimum safe "
+                f"{'.'.join(map(str, MIN_SAFE_VERSION))}"
+            )
 
     # ── AC-03: authentication is mandatory ──────────────────────────────────
     print("[e2e] negative auth tests")
@@ -211,6 +257,18 @@ def main(argv=None) -> int:
     if bad_tok not in (401, 403):
         failures.append(
             f"AC-03: request with a bad token returned {bad_tok}, expected 401/403"
+        )
+
+    # ── AC-04: the untrusted-config gate refuses laundered types ────────────
+    print("[e2e] GHSA-5w5p laundering probe")
+    probe_status, _, _ = crawl_once(
+        args.base_url, token, args.urls[0], 60, LAUNDERING_PROBE_CONFIG
+    )
+    checks["laundering_probe_status"] = probe_status
+    if probe_status != 400:
+        failures.append(
+            f"AC-04: dict-wrapped LLMConfig returned {probe_status}, expected 400 "
+            "(GHSA-5w5p-vcv6-mm3f not closed)"
         )
 
     # ── representative workload ─────────────────────────────────────────────
