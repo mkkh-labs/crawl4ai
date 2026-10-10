@@ -16,7 +16,9 @@ RUN groupadd --system --gid 10001 console \
 
 WORKDIR /opt/console
 COPY deploy/ui/requirements.txt ./ui/requirements.txt
-RUN pip install -r ui/requirements.txt
+# The base image's pip 25.0.1 carries six advisories (PYSEC-2026-1795 ...
+# -3721); 26.2 clears them. Upgrade before installing anything with it.
+RUN pip install --upgrade "pip>=26.2" && pip install -r ui/requirements.txt
 
 # The console reuses the n8n contract and E2E helpers verbatim.
 COPY deploy/n8n/contract.py ./n8n/contract.py

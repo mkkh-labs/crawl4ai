@@ -172,7 +172,7 @@ It has no login of its own: keep the loopback bind.
 
 ### Release gates to run before promotion
 1. `pytest deploy/docker/tests --ignore-glob='deploy/docker/tests/test_[0-9]_*.py' tests/unit/test_pdf_*.py tests/unit/test_config_provenance.py tests/unit/test_egress_policy.py tests/unit/test_robots_query_rules.py tests/gateway -q`
-2. Image dependency gate: `pip freeze` from the image → `pip-audit -r … --no-deps --disable-pip --format json` → `deploy/gateway/audit_gate.py`.
+2. Image dependency gate, for both images: `pip list --format=freeze` from the image (not `pip freeze`, which hides pip and setuptools) → `pip-audit -r … --no-deps --disable-pip --format json` → `deploy/gateway/audit_gate.py`.
 3. E2E from n8n's namespace: `docker run --rm --network container:n8n-n8n-1 -e CRAWL4AI_API_TOKEN -v "$PWD/deploy:/w/deploy:ro" python:3.12-slim-bookworm python /w/deploy/gateway/e2e.py --base-url http://crawl4ai:11235 --runs 20`.
 4. Concurrent soak: `python deploy/gateway/soak.py --container crawl4ai-crawl4ai-1 --jobs 60 --concurrency 4 --cooldown-s 720`.
    Cooldown must exceed the hot-pool idle TTL (2 × `idle_ttl_sec` = 600 s) plus one janitor interval (60 s), or a pooled browser is still legitimately alive.

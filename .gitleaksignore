@@ -1,0 +1,43 @@
+# Pre-existing gitleaks findings in UPSTREAM unclecode/crawl4ai history
+# (inherited by this fork), reviewed 2026-10-10. None are in a commit this fork
+# added. Every entry is a documentation curl/JSON example, a test fixture
+# password, or a truncated `pypi-...` example token in a docs README; none is a
+# usable credential. Entries are exact fingerprints (commit:file:rule:line), so
+# any NEW finding, in any commit, still fails the secret-scan job.
+108b2a8bfbfdca6b928603596002a91b608af860:docs/md_v2/core/docker-deployment.md:curl-auth-header:692
+108b2a8bfbfdca6b928603596002a91b608af860:docs/md_v2/core/docker-deployment.md:generic-api-key:684
+112f44a97d6896fda1200a3f5f926c625d62c05e:tests/proxy/test_chanel_debug.py:generic-api-key:32
+112f44a97d6896fda1200a3f5f926c625d62c05e:tests/proxy/test_persistent_proxy.py:generic-api-key:32
+112f44a97d6896fda1200a3f5f926c625d62c05e:tests/proxy/test_platform_match.py:generic-api-key:37
+112f44a97d6896fda1200a3f5f926c625d62c05e:tests/proxy/test_proxy_regression.py:generic-api-key:43
+201843a2046b5fe882e17d92efafcc88a53afc4a:deploy/docker/routers/scripts.py:curl-auth-header:210
+201843a2046b5fe882e17d92efafcc88a53afc4a:deploy/docker/routers/scripts.py:curl-auth-header:217
+201843a2046b5fe882e17d92efafcc88a53afc4a:deploy/docker/server.py:curl-auth-header:1005
+201843a2046b5fe882e17d92efafcc88a53afc4a:deploy/docker/server.py:curl-auth-header:1005
+201843a2046b5fe882e17d92efafcc88a53afc4a:deploy/docker/server.py:generic-api-key:287
+201843a2046b5fe882e17d92efafcc88a53afc4a:docs/md_v2/api/docker-server.md:generic-api-key:727
+2af958e12ced8ee5cfdff6c97278c62586b820e2:docs/md_v2/api/parameters.md:generic-api-key:260
+2af958e12ced8ee5cfdff6c97278c62586b820e2:docs/md_v2/core/browser-crawler-config.md:generic-api-key:252
+392c923980c342d311d296f9e3c269dd248a34a4:deploy/docker/README.md:curl-auth-header:706
+392c923980c342d311d296f9e3c269dd248a34a4:deploy/docker/README.md:generic-api-key:698
+3ea3c0520d2d0a943d8db265c63568f73818bd3f:deploy/aws/docker/README.md:curl-auth-header:706
+3ea3c0520d2d0a943d8db265c63568f73818bd3f:deploy/aws/docker/README.md:generic-api-key:698
+3ea3c0520d2d0a943d8db265c63568f73818bd3f:deploy/aws/howto.md:curl-auth-header:22
+3ea3c0520d2d0a943d8db265c63568f73818bd3f:deploy/aws/howto.md:curl-auth-header:39
+5297e362f34b27f8d63b830f2a69bb6858a5009d:deploy/docker/c4ai-doc-context.md:curl-auth-header:2800
+5297e362f34b27f8d63b830f2a69bb6858a5009d:deploy/docker/c4ai-doc-context.md:generic-api-key:2792
+5297e362f34b27f8d63b830f2a69bb6858a5009d:deploy/docker/c4ai-doc-context.md:generic-api-key:340
+57aeb70f00cddaf55b407ed3274dc240416b4079:docs/examples/capsolver_captcha_solver/capsolver_api_integration/solve_recaptcha_v2.py:generic-api-key:9
+6d1a39841928556117b26e86dc24768db5f9a2e7:.github/workflows/docs/README.md:pypi-upload-token:416
+7cac008c10fef3c24fab602ff4c5759ba999123b:.github/workflows/docs/README.md:pypi-upload-token:416
+7cac008c10fef3c24fab602ff4c5759ba999123b:docs/md_v2/complete-sdk-reference.md:generic-api-key:1592
+7cac008c10fef3c24fab602ff4c5759ba999123b:docs/md_v2/complete-sdk-reference.md:generic-api-key:1969
+979e8e6e31a621a5cd80c4ba472c34191f0cb681:deploy/docker/redis_config.py:generic-api-key:49
+a06710ff03d755dcfd6a00f55afc1fcd845f3ebb:docs/md_v2/assets/llmtxt/crawl4ai_all_reasoning_content.llm.txt:generic-api-key:267
+a06710ff03d755dcfd6a00f55afc1fcd845f3ebb:docs/md_v2/assets/llmtxt/crawl4ai_deployment.llm.full.txt:generic-api-key:994
+a06710ff03d755dcfd6a00f55afc1fcd845f3ebb:docs/md_v2/assets/llmtxt/crawl4ai_deployment_reasoning_content.llm.txt:generic-api-key:442
+c3a192775a2b1340675cbd0ebd75552a8cd5fb96:.github/workflows/docs/README.md:pypi-upload-token:416
+c7288dd2f1391597c903c2b85377dc6b5ea95621:docs/md_v2/complete-sdk-reference.md:generic-api-key:1592
+c7288dd2f1391597c903c2b85377dc6b5ea95621:docs/md_v2/complete-sdk-reference.md:generic-api-key:1969
+c73a130c5079fe65ae2c291947883d8a1fdb59be:docs/md_v2/assets/llmtxt/crawl4ai_all_reasoning_content.llm.txt:generic-api-key:267
+d48d382d18a40cf824f51bbd1b1d30d1078c6526:tests/conftest.py:generic-api-key:144
