@@ -1,0 +1,40 @@
+# The Dockerfile does `COPY . /tmp/project/` to pip-install the local source.
+# Without this file that layer shipped the developer's .venv (638 MB, with its
+# own unaudited packages) and the full .git history, and would have baked in
+# any local secret file such as .llm.env. Only what the install needs goes in.
+
+# VCS and local environments
+.git
+.github
+.venv
+venv
+env
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+build
+dist
+
+# Secrets: runtime-only, injected by compose (env_file / secrets), never baked
+.env
+.env.*
+*.env
+!.llm.env.example
+.llm.env
+**/token.env
+**/secrets
+
+# Not needed to build or run the gateway
+docs
+tests
+sbom
+prompts
+deploy/ui
+deploy/gateway
+deploy/n8n
+.playground
+.claude
+*.log
