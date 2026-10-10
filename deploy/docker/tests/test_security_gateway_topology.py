@@ -107,6 +107,14 @@ class TestImmutableImageReference:
         """AC-07: production must not resolve to a mutable tag."""
         assert "latest" not in service["image"], service["image"]
 
+    def test_image_is_required_with_no_upstream_fallback(self, compose_text):
+        """The stock upstream image lacks this fork's baked-in config.yml
+        (trusted_hosts allowlist, Redis limiter). An unset IMAGE must fail
+        compose, not silently fall back to it."""
+        assert "${IMAGE:?" in compose_text
+        assert "${IMAGE:-" not in compose_text
+        assert "unclecode/crawl4ai:" not in compose_text
+
 
 class TestLeastPrivilegePreserved:
     """M2 must not trade away any v0.9.3 hardening to gain private networking."""

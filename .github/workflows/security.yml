@@ -151,13 +151,30 @@ jobs:
       - name: Rendered compose topology has no host-published crawler port
         env:
           CRAWL4AI_API_TOKEN: ci-render-validation-only
+          IMAGE: crawl4ai-self-hosted:ci-render-validation-only
         run: |
           docker compose config | python deploy/gateway/check_rendered_topology.py
 
       - name: Compose refuses to render without CRAWL4AI_API_TOKEN
+        # IMAGE is set so the token is the only missing input; otherwise this
+        # step could pass because of the IMAGE requirement instead.
+        env:
+          IMAGE: crawl4ai-self-hosted:ci-render-validation-only
         run: |
-          if docker compose config >/dev/null 2>&1; then
+          if out=$(docker compose config 2>&1); then
             echo "compose rendered without a token; the gateway would start unauthenticated" >&2
             exit 1
           fi
+          echo "$out" | grep -q CRAWL4AI_API_TOKEN || { echo "failed for another reason: $out" >&2; exit 1; }
           echo "compose failed closed without a token, as required"
+
+      - name: Compose refuses to render without IMAGE
+        env:
+          CRAWL4AI_API_TOKEN: ci-render-validation-only
+        run: |
+          if out=$(docker compose config 2>&1); then
+            echo "compose rendered without IMAGE; it could fall back to an unhardened image" >&2
+            exit 1
+          fi
+          echo "$out" | grep -q IMAGE || { echo "failed for another reason: $out" >&2; exit 1; }
+          echo "compose failed closed without IMAGE, as required"

@@ -41,6 +41,11 @@ def check(rendered: dict) -> list[str]:
     image = svc.get("image", "")
     if "latest" in image:
         problems.append(f"{SERVICE} resolves to a mutable tag: {image}")
+    if image.startswith(("unclecode/crawl4ai", "docker.io/unclecode/crawl4ai")):
+        problems.append(
+            f"{SERVICE} resolves to the stock upstream image, which lacks this "
+            f"fork's baked-in config.yml hardening: {image}"
+        )
 
     if svc.get("read_only") is not True:
         problems.append("root filesystem is not read-only")

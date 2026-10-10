@@ -58,9 +58,11 @@ x-base-config: &base-config
 
 services:
   crawl4ai:
-    # 1. Default: Pull multi-platform test image from Docker Hub
-    # 2. Override with local image via: IMAGE=local-test docker compose up
-    image: ${IMAGE:-unclecode/crawl4ai:${TAG:-0.9.3}}
+    # REQUIRED: the locally built gateway image (see the Build command in
+    # CLAUDE.md). There is deliberately no default: falling back to the stock
+    # unclecode/crawl4ai image would silently drop this fork's baked-in
+    # config.yml hardening (trusted_hosts allowlist, Redis-backed limiter).
+    image: ${IMAGE:?set IMAGE to the locally built gateway image, e.g. crawl4ai-self-hosted:0.9.4}
     
     # Local build config (used with --build)
     build:
