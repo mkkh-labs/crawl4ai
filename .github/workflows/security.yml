@@ -8,25 +8,13 @@ name: Security
 # (~seconds) and deterministic.
 
 on:
+  # No path filters. The suite is offline and fast, and a filter quietly misses
+  # security-relevant changes (crawl4ai/utils.py robots fetch,
+  # async_url_seeder.py, requirements). Its jobs are required status checks on
+  # main, so a PR that skipped them could never merge.
   push:
     branches: [main, develop, "security/**", "build/**"]
-    paths:
-      - "deploy/**"
-      - "tests/unit/**"
-      - "tests/gateway/**"
-      - "crawl4ai/async_configs.py"
-      - "crawl4ai/processors/pdf/**"
-      - "docker-compose.yml"
-      - ".github/workflows/security.yml"
   pull_request:
-    paths:
-      - "deploy/**"
-      - "tests/unit/**"
-      - "tests/gateway/**"
-      - "crawl4ai/async_configs.py"
-      - "crawl4ai/processors/pdf/**"
-      - "docker-compose.yml"
-      - ".github/workflows/security.yml"
 
 # Least privilege: these jobs only read the checkout.
 permissions:
