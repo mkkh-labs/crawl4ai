@@ -116,11 +116,13 @@ if not _api_token:
 # ── default browser config helper ─────────────────────────────
 def _browser_extra_args() -> list:
     """Effective Chromium launch flags. Drops --no-sandbox when the operator
-    opts into the renderer sandbox (CRAWL4AI_CHROMIUM_SANDBOX=true)."""
-    args = list(config["crawler"]["browser"].get("extra_args", []))
-    if CHROMIUM_SANDBOX:
-        args = [a for a in args if a != "--no-sandbox"]
-    return args
+    opts into the renderer sandbox (CRAWL4AI_CHROMIUM_SANDBOX=true).
+
+    Single source shared with request-built configs (browser_defaults.py), so
+    the permanent browser and /crawl requests compute the same pool signature."""
+    from browser_defaults import server_extra_args
+
+    return server_extra_args(config, sandbox=CHROMIUM_SANDBOX)
 
 
 def get_default_browser_config() -> BrowserConfig:
