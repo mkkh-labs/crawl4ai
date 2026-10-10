@@ -123,13 +123,13 @@ Execute M8 and M9. Add the soak/resource validation, disable the mutable nonesse
 **Objective** — Prove the exact build under private runtime, n8n workload, fidelity, soak, and rollback before promotion.
 
 ### Deploy build
-`docker build --build-arg C4AI_VER=0.9.3 --build-arg USE_LOCAL=true -t crawl4ai-self-hosted:0.9.3 .`
+`docker build --build-arg C4AI_VER=0.9.4 --build-arg USE_LOCAL=true -t crawl4ai-self-hosted:0.9.4 .`
 
 ### Deploy private service
-`test -n "$CRAWL4AI_API_TOKEN" && (docker network inspect automation_internal >/dev/null 2>&1 || docker network create automation_internal) && IMAGE=crawl4ai-self-hosted:0.9.3 docker compose up -d crawl4ai`
+`set -a && . ~/.config/crawl4ai-gateway/gateway.env && set +a && (docker network inspect automation_internal >/dev/null 2>&1 || docker network create automation_internal) && IMAGE=crawl4ai-self-hosted:0.9.4 docker compose up -d crawl4ai`
 
 ### Health
-`docker compose exec -T crawl4ai curl -fsS http://127.0.0.1:11235/health`
+`docker exec crawl4ai-crawl4ai-1 curl -fsS http://127.0.0.1:11235/health` (works without exporting the token; `docker compose exec` needs it for interpolation)
 
 ### DEPLOY Claude Code prompt
 ````text
@@ -142,10 +142,40 @@ Execute DEPLOY validation only. Build the exact 0.9.3-derived image, deploy it o
 1. Record current safe image identity before promotion.
 2. Introduce a controlled health failure in a non-production validation run or select the prior safe build.
 3. Stop new n8n jobs.
-4. Redeploy the prior **safe v0.9.3-derived** artifact.
+4. Redeploy `crawl4ai-self-hosted:0.9.4-known-safe` (`IMAGE=crawl4ai-self-hosted:0.9.4-known-safe docker compose up -d --force-recreate crawl4ai`; drilled 2026-10-09: 16.5 s to healthy).
 5. Verify health, auth, one crawl, and n8n contract.
 6. Record from/to artifact IDs and reason.
-7. Never roll back to v0.9.2.
+7. Never roll back to v0.9.2 or v0.9.3 (both carry advisories fixed in v0.9.4).
+
+## Operations (v0.9.4 gateway)
+
+### Secrets
+The gateway token lives outside the repo in `~/.config/crawl4ai-gateway/` (dir 0700, files 0600):
+`gateway.env` (`CRAWL4AI_API_TOKEN=...`, sourced for the gateway compose) and `api_token`
+(the bare token, mounted into the console as a compose secret). Both hold the same value.
+
+**Rotate:** generate a new token into both files, redeploy the gateway (Deploy private service),
+recreate the console with `--force-recreate`, then update the n8n credential.
+n8n jobs fail with `auth` until the credential is updated, so stop scheduled jobs first.
+
+### n8n wiring (n8n-docker repo)
+n8n joins `automation_internal` and allows exactly one SSRF hostname, `N8N_SSRF_ALLOWED_HOSTNAMES=crawl4ai`.
+With `N8N_SSRF_PROTECTION_ENABLED=true` the default blocklist covers 172.16.0.0/12, so without that
+exception the HTTP Request node is refused. Verified 2026-10-09 in an isolated n8n container:
+`crawl4ai` by name allowed; the gateway by IP and 169.254.169.254 both `SsrfBlockedIpError`.
+
+### Operator console
+`CRAWL4AI_API_TOKEN_FILE=~/.config/crawl4ai-gateway/api_token CONSOLE_IMAGE=crawl4ai-console:0.9.4 docker compose -f deploy/ui/compose.yml up -d --build`,
+then open http://127.0.0.1:8501. Pages: Status, Crawl (through the n8n contract), History
+(provenance only, never page bodies), Self-test (version floor, auth, GHSA-5w5p, metadata SSRF).
+It has no login of its own: keep the loopback bind.
+
+### Release gates to run before promotion
+1. `pytest deploy/docker/tests --ignore-glob='deploy/docker/tests/test_[0-9]_*.py' tests/unit/test_pdf_*.py tests/unit/test_config_provenance.py tests/unit/test_egress_policy.py tests/unit/test_robots_query_rules.py tests/gateway -q`
+2. Image dependency gate: `pip freeze` from the image → `pip-audit -r … --no-deps --disable-pip --format json` → `deploy/gateway/audit_gate.py`.
+3. E2E from n8n's namespace: `docker run --rm --network container:n8n-n8n-1 -e CRAWL4AI_API_TOKEN -v "$PWD/deploy:/w/deploy:ro" python:3.12-slim-bookworm python /w/deploy/gateway/e2e.py --base-url http://crawl4ai:11235 --runs 20`.
+4. Concurrent soak: `python deploy/gateway/soak.py --container crawl4ai-crawl4ai-1 --jobs 60 --concurrency 4 --cooldown-s 720`.
+   Cooldown must exceed the hot-pool idle TTL (2 × `idle_ttl_sec` = 600 s) plus one janitor interval (60 s), or a pooled browser is still legitimately alive.
 
 ## Session operations
 | Situation | Claude Code action |

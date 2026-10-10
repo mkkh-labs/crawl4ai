@@ -19,6 +19,12 @@ reference for these rules and is covered by `tests/gateway/test_n8n_contract.py`
 There is no public hostname. The compose service publishes no host port, so this
 endpoint is reachable only from containers attached to `automation_internal`.
 
+n8n must also allow the hostname through its own SSRF guard. With
+`N8N_SSRF_PROTECTION_ENABLED=true`, n8n blocks 172.16.0.0/12 (Docker bridge
+addresses) by default, so set exactly `N8N_SSRF_ALLOWED_HOSTNAMES=crawl4ai`
+(no wildcard). Always call the gateway by that name: an IP-addressed URL stays
+blocked, which is intended.
+
 > **Never** paste the token into a workflow node, an expression, an exported
 > workflow JSON, or a log line. Exported workflows are shareable artifacts; a
 > credential reference is safe to export, a credential value is not.
