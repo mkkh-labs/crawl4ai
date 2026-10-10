@@ -19,7 +19,7 @@ Usage
     export CRAWL4AI_API_TOKEN=...            # same token the gateway requires
     python deploy/gateway/soak.py \
         --container crawl4ai \
-        --jobs 20 \
+        --jobs 60 --concurrency 4 \
         --cooldown-s 120 \
         --out docs/implementation/soak-evidence.json
 
@@ -35,8 +35,11 @@ import shutil
 import statistics
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 import urllib.request
 from dataclasses import dataclass, field, asdict
 
@@ -155,6 +158,9 @@ def run_job_via_exec(container: str, token: str, url: str, timeout: int) -> JobR
             "crawler_config": {"stream": False, "cache_mode": "bypass"},
         }
     )
+    # Unique per job: concurrent jobs sharing one path would read each other's
+    # (or a half-written) body and corrupt the success count.
+    body_path = body_path_for_job()
     started = time.time()
     try:
         out = _docker(
@@ -166,7 +172,7 @@ def run_job_via_exec(container: str, token: str, url: str, timeout: int) -> JobR
             "-m",
             str(timeout),
             "-o",
-            "/tmp/soak_body.json",
+            body_path,
             "-w",
             "%{http_code}",
             "-X",
@@ -182,9 +188,7 @@ def run_job_via_exec(container: str, token: str, url: str, timeout: int) -> JobR
             stdin=payload,
         )
         status = int(out.strip().splitlines()[-1])
-        body = json.loads(
-            _docker("exec", container, "cat", "/tmp/soak_body.json") or "{}"
-        )
+        body = json.loads(_docker("exec", container, "cat", body_path) or "{}")
         ok = status == 200 and bool(body.get("success")) and bool(body.get("results"))
         return JobResult(
             url,
@@ -197,6 +201,44 @@ def run_job_via_exec(container: str, token: str, url: str, timeout: int) -> JobR
         return JobResult(
             url, None, round(time.time() - started, 3), False, type(exc).__name__
         )
+    finally:
+        try:
+            _docker("exec", container, "rm", "-f", body_path)
+        except Exception:
+            pass
+
+
+def body_path_for_job() -> str:
+    return f"/tmp/soak_body_{uuid.uuid4().hex}.json"
+
+
+def run_workload(job_fn, urls, jobs, concurrency, sample_fn, interval_s):
+    """Run `jobs` crawls with at most `concurrency` in flight.
+
+    A sampler thread observes the container on its own clock for the whole
+    traffic phase, so samples reflect concurrent load rather than the gaps
+    between sequential jobs. Returns (results in submission order, samples).
+    """
+    concurrency = max(1, int(concurrency))
+    samples: list = []
+    stop = threading.Event()
+
+    def sampler():
+        while not stop.is_set():
+            samples.append(sample_fn())
+            stop.wait(interval_s)
+
+    thread = threading.Thread(target=sampler, daemon=True)
+    thread.start()
+    try:
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            futures = [pool.submit(job_fn, urls[i % len(urls)]) for i in range(jobs)]
+            results = [f.result() for f in futures]
+    finally:
+        stop.set()
+        thread.join()
+    samples.append(sample_fn())  # one observation at end of traffic
+    return results, samples
 
 
 def run_job(base_url: str, token: str, url: str, timeout: int) -> JobResult:
@@ -302,6 +344,12 @@ def main(argv: list[str] | None = None) -> int:
         "this is http://crawl4ai:11235",
     )
     ap.add_argument("--jobs", type=int, default=20)
+    ap.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="crawls in flight at once; >1 exercises the browser pool",
+    )
     ap.add_argument("--cooldown-s", type=int, default=120)
     ap.add_argument("--sample-interval-s", type=float, default=5.0)
     ap.add_argument("--baseline-samples", type=int, default=4)
@@ -337,15 +385,27 @@ def main(argv: list[str] | None = None) -> int:
         baseline.append(sample_container(args.container, "baseline", t0))
         time.sleep(args.sample_interval_s)
 
-    print(f"[soak] workload: {args.jobs} jobs")
-    jobs: list[JobResult] = []
-    for i in range(args.jobs):
-        url = args.urls[i % len(args.urls)]
-        if args.via == "docker-exec":
-            jobs.append(run_job_via_exec(args.container, token, url, args.timeout_s))
-        else:
-            jobs.append(run_job(args.base_url, token, url, args.timeout_s))
-        during.append(sample_container(args.container, "traffic", t0))
+    print(f"[soak] workload: {args.jobs} jobs, concurrency {args.concurrency}")
+    if args.via == "docker-exec":
+
+        def job_fn(url):
+            return run_job_via_exec(args.container, token, url, args.timeout_s)
+
+    else:
+
+        def job_fn(url):
+            return run_job(args.base_url, token, url, args.timeout_s)
+
+    traffic_started = time.time()
+    jobs, during = run_workload(
+        job_fn,
+        args.urls,
+        args.jobs,
+        args.concurrency,
+        lambda: sample_container(args.container, "traffic", t0),
+        args.sample_interval_s,
+    )
+    traffic_s = time.time() - traffic_started
 
     print(f"[soak] cooldown: {args.cooldown_s}s")
     deadline = time.time() + args.cooldown_s
@@ -359,6 +419,15 @@ def main(argv: list[str] | None = None) -> int:
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "container": args.container,
         "transport": args.via,
+        "concurrency": args.concurrency,
+        "traffic_duration_s": round(traffic_s, 1),
+        "throughput_jobs_per_min": (
+            round(args.jobs / traffic_s * 60, 2) if traffic_s > 0 else None
+        ),
+        "peak_browser_processes": max(
+            (s.browser_processes for s in during), default=None
+        ),
+        "peak_rss_bytes": max((s.rss_bytes for s in during), default=None),
         "jobs_requested": args.jobs,
         "jobs_succeeded": sum(1 for j in jobs if j.ok),
         "jobs_failed": sum(1 for j in jobs if not j.ok),

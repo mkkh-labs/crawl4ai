@@ -126,3 +126,40 @@ class TestByteParsing:
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))
+
+
+# ── concurrent workload driver ───────────────────────────────────────────────
+
+
+def test_workload_respects_concurrency_bound_and_order():
+    import threading
+    import time as _time
+
+    lock = threading.Lock()
+    state = {"in_flight": 0, "peak": 0}
+
+    def job(url):
+        with lock:
+            state["in_flight"] += 1
+            state["peak"] = max(state["peak"], state["in_flight"])
+        _time.sleep(0.02)
+        with lock:
+            state["in_flight"] -= 1
+        return url
+
+    urls = ["a", "b", "c"]
+    results, samples = soak.run_workload(job, urls, 12, 3, lambda: "s", 0.005)
+    assert results == [urls[i % 3] for i in range(12)]
+    assert state["peak"] == 3
+    assert samples and samples[-1] == "s"
+
+
+def test_workload_concurrency_floor_is_one():
+    results, _ = soak.run_workload(lambda u: u, ["x"], 2, 0, lambda: None, 0.01)
+    assert results == ["x", "x"]
+
+
+def test_concurrent_jobs_never_share_a_body_path():
+    paths = {soak.body_path_for_job() for _ in range(500)}
+    assert len(paths) == 500
+    assert all(p.startswith("/tmp/soak_body_") for p in paths)
