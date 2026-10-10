@@ -148,6 +148,26 @@ jobs:
       - name: n8n contract, provenance and fidelity corpus
         run: pytest tests/gateway -q
 
+      - name: Operator console UI (Streamlit AppTest)
+        run: |
+          pip install -r deploy/ui/requirements.txt
+          pytest deploy/ui/tests -q
+
+      - name: Console compose binds host loopback only
+        env:
+          CRAWL4AI_API_TOKEN: ci-render-validation-only
+          CONSOLE_IMAGE: crawl4ai-console:ci-render-validation-only
+        run: |
+          docker compose -f deploy/ui/compose.yml config --format json | python -c "
+          import json, sys
+          svc = json.load(sys.stdin)['services']['console']
+          bad = [p for p in svc.get('ports', []) if p.get('host_ip') != '127.0.0.1']
+          assert not bad, f'console published beyond loopback: {bad}'
+          assert svc.get('read_only') is True, 'console rootfs not read-only'
+          assert 'CRAWL4AI_API_TOKEN' not in (svc.get('environment') or {}), 'token passed as env var'
+          print('console topology OK')
+          "
+
       - name: Rendered compose topology has no host-published crawler port
         env:
           CRAWL4AI_API_TOKEN: ci-render-validation-only

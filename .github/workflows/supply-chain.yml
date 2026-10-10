@@ -128,6 +128,7 @@ jobs:
           black --check \
             deploy/gateway \
             deploy/n8n \
+            deploy/ui \
             tests/gateway \
             deploy/docker/tests/test_security_gateway_topology.py \
             deploy/docker/tests/test_security_playground_dom_xss.py \
