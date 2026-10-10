@@ -77,7 +77,7 @@ def page_status() -> None:
     _status_badge(health)
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Version", health.version or "—")
-    c2.metric("Health latency", f"{health.latency_ms} ms")
+    c2.metric("Latency", f"{health.latency_ms:.0f} ms")
     c3.metric(
         "Min safe version",
         ".".join(map(str, con.e2e.MIN_SAFE_VERSION)),

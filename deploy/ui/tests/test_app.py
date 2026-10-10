@@ -41,7 +41,7 @@ def test_status_page_shows_healthy_safe_gateway(env):
     assert any("0.9.4 healthy" in s.value for s in at.success)
     labels = {m.label: m.value for m in at.metric}
     assert labels["Version"] == "0.9.4"
-    assert labels["Token"] == "configured"
+    assert labels["Token"] == "set"
 
 
 def test_status_page_warns_on_unsafe_version(env):

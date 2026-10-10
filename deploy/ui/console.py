@@ -57,7 +57,7 @@ class GatewaySettings:
 
     @property
     def token_source_label(self) -> str:
-        return "configured" if self.token else "missing"
+        return "set" if self.token else "missing"
 
 
 def load_settings(environ: dict[str, str] | None = None) -> GatewaySettings:

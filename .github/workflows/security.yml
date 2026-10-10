@@ -155,9 +155,10 @@ jobs:
 
       - name: Console compose binds host loopback only
         env:
-          CRAWL4AI_API_TOKEN: ci-render-validation-only
+          CRAWL4AI_API_TOKEN_FILE: /tmp/ci-console-token
           CONSOLE_IMAGE: crawl4ai-console:ci-render-validation-only
         run: |
+          printf 'ci-render-validation-only' > /tmp/ci-console-token
           docker compose -f deploy/ui/compose.yml config --format json | python -c "
           import json, sys
           svc = json.load(sys.stdin)['services']['console']
