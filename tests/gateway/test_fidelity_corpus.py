@@ -7,7 +7,8 @@ technical content: a dropped fenced block turns a code sample into prose, and
 nothing downstream notices because the crawl still "succeeded".
 
 Deterministic and offline. The corpus is local HTML and the assertions run the
-real markdown pipeline (DefaultMarkdownGenerator + PruningContentFilter)
+real markdown pipeline (DefaultMarkdownGenerator + PruningContentFilterLXML,
+the FIT filter the server uses since v0.9.4)
 directly, so no browser, network, or public website is involved -- a release
 gate that depends on a live site is not a gate.
 
@@ -29,6 +30,9 @@ import contract as c  # noqa: E402
 
 from crawl4ai.__version__ import __version__ as CRAWLER_VERSION  # noqa: E402
 from crawl4ai.content_filter_strategy import PruningContentFilter  # noqa: E402
+from crawl4ai.content_filter_strategy_lxml import (  # noqa: E402
+    PruningContentFilterLXML,
+)
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator  # noqa: E402
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "fidelity")
@@ -36,6 +40,22 @@ BASE_URL = "https://example.com/docs/page"
 
 #: Fixtures whose loss is a release blocker rather than a quality regression.
 CRITICAL = {"code_heavy"}
+
+#: Oldest release carrying every known security fix (v0.9.4 closes
+#: GHSA-5w5p-vcv6-mm3f, GHSA-wh5w-hmj3-vgg7 and GHSA-f77g-77vp-r96v).
+MIN_SAFE_VERSION = (0, 9, 4)
+
+FIXTURE_NAMES = (
+    "code_heavy",
+    "dynamic_ready",
+    "canonical_duplicate",
+    "noisy_navigation",
+    "pdf_escaped_text",
+)
+
+
+def _version_tuple(version: str) -> tuple:
+    return tuple(int(part) for part in version.split(".")[:3])
 
 
 def _load(name: str) -> str:
@@ -55,15 +75,9 @@ def _extract(name: str, *, content_filter=None):
 def corpus():
     """Every fixture extracted twice: production default, and pruned."""
     out = {}
-    for name in (
-        "code_heavy",
-        "dynamic_ready",
-        "canonical_duplicate",
-        "noisy_navigation",
-        "pdf_escaped_text",
-    ):
+    for name in FIXTURE_NAMES:
         html, unfiltered = _extract(name)
-        _, pruned = _extract(name, content_filter=PruningContentFilter())
+        _, pruned = _extract(name, content_filter=PruningContentFilterLXML())
         out[name] = {
             "html": html,
             "source_checksum": "sha256:" + hashlib.sha256(html.encode()).hexdigest(),
@@ -79,7 +93,7 @@ def corpus():
 
 def test_corpus_records_source_checksum_and_crawler_version(corpus):
     """M7: fidelity evidence is only meaningful with the inputs identified."""
-    assert CRAWLER_VERSION == "0.9.3", CRAWLER_VERSION
+    assert _version_tuple(CRAWLER_VERSION) >= MIN_SAFE_VERSION, CRAWLER_VERSION
     for name, data in corpus.items():
         assert data["source_checksum"].startswith("sha256:"), name
         # Distinct fixtures must not collide, or a swap would go unnoticed.
@@ -124,7 +138,7 @@ class TestCodeBlockPreservation:
         assert "`--no-sandbox`" in corpus["code_heavy"]["raw_markdown"]
 
     def test_pruning_filter_does_not_strip_code(self, corpus):
-        """Measured: PruningContentFilter keeps both blocks on this fixture."""
+        """Measured: PruningContentFilterLXML keeps both blocks on this fixture."""
         fit = corpus["code_heavy"]["fit_pruned"]
         assert fit, "pruned output unexpectedly empty"
         assert fit.count("```") == 4
@@ -229,6 +243,19 @@ class TestRawMarkdownFallback:
         data = corpus[name]
         for fit in (data["fit_unfiltered"], data["fit_pruned"]):
             assert c.select_markdown(data["raw_markdown"], fit).text.strip()
+
+
+# ─────────────────────────── filter engine parity ───────────────────────────
+
+
+@pytest.mark.parametrize("name", FIXTURE_NAMES)
+def test_lxml_filter_matches_legacy_engine(name):
+    """v0.9.4 swapped the server's FIT engine to PruningContentFilterLXML and
+    claims identical output. Verify that on the corpus instead of trusting it:
+    a silent divergence would change what n8n stores without any error."""
+    _, legacy = _extract(name, content_filter=PruningContentFilter())
+    _, lxml = _extract(name, content_filter=PruningContentFilterLXML())
+    assert lxml.fit_markdown == legacy.fit_markdown, name
 
 
 if __name__ == "__main__":
