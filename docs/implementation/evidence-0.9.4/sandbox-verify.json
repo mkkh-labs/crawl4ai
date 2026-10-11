@@ -1,0 +1,73 @@
+{
+  "verdict": "pass",
+  "container_userns": "user:[4026531837]",
+  "browsers": 1,
+  "renderers": 1,
+  "failures": [],
+  "processes": [
+    {
+      "pid": 48,
+      "type": "browser",
+      "no_sandbox_flag": false,
+      "userns": "user:[4026531837]",
+      "nspid_depth": 1,
+      "seccomp": "2"
+    },
+    {
+      "pid": 51,
+      "type": "zygote",
+      "no_sandbox_flag": false,
+      "userns": "user:[4026531837]",
+      "nspid_depth": 1,
+      "seccomp": "2"
+    },
+    {
+      "pid": 52,
+      "type": "zygote",
+      "no_sandbox_flag": false,
+      "userns": "user:[4026534627]",
+      "nspid_depth": 2,
+      "seccomp": "2"
+    },
+    {
+      "pid": 54,
+      "type": "zygote",
+      "no_sandbox_flag": false,
+      "userns": "user:[4026534627]",
+      "nspid_depth": 2,
+      "seccomp": "2"
+    },
+    {
+      "pid": 70,
+      "type": "gpu-process",
+      "no_sandbox_flag": false,
+      "userns": "user:[4026531837]",
+      "nspid_depth": 1,
+      "seccomp": "2"
+    },
+    {
+      "pid": 72,
+      "type": "broker",
+      "no_sandbox_flag": false,
+      "userns": "user:[4026531837]",
+      "nspid_depth": 1,
+      "seccomp": "2"
+    },
+    {
+      "pid": 78,
+      "type": "utility",
+      "no_sandbox_flag": false,
+      "userns": "user:[4026531837]",
+      "nspid_depth": 1,
+      "seccomp": "2"
+    },
+    {
+      "pid": 108,
+      "type": "renderer",
+      "no_sandbox_flag": false,
+      "userns": "user:[4026534627]",
+      "nspid_depth": 3,
+      "seccomp": "2"
+    }
+  ]
+}

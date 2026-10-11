@@ -1,0 +1,118 @@
+{
+  "generated_at": "2026-10-11T16:18:21Z",
+  "gateway_image": "crawl4ai-self-hosted:0.9.4",
+  "n8n_image": "lab/n8n:2.41.6-custom3",
+  "isolation": "throwaway gateway + throwaway n8n (SQLite) on a private test network; one-time token, discarded",
+  "verdict": "pass",
+  "scenarios": [
+    {
+      "scenario": "S1 success + provenance + redaction",
+      "passed": true,
+      "detail": "{\"status\": \"succeeded\", \"attempts\": 1, \"source_url\": \"https://example.com/?token=%5BREDACTED%5D&page=1\", \"crawler_version\": \"0.9.4\"}"
+    },
+    {
+      "scenario": "S2 wrong token: terminal auth, no retry",
+      "passed": true,
+      "detail": "{\"status\": \"failed_terminal\", \"failure_class\": \"auth\", \"attempts\": 1}"
+    },
+    {
+      "scenario": "S3 gateway down: bounded retries then terminal network",
+      "passed": true,
+      "detail": "{\"status\": \"failed_terminal\", \"failure_class\": \"network\", \"attempts\": 3, \"elapsed_s\": 8.2}"
+    },
+    {
+      "scenario": "S4 invalid URL fails visibly",
+      "passed": true,
+      "detail": "exit=1"
+    }
+  ],
+  "records": {
+    "S1": {
+      "run_id": "run-2-mv411nh1",
+      "source_url": "https://example.com/?token=%5BREDACTED%5D&page=1",
+      "started_at": "2026-10-11T16:18:03Z",
+      "finished_at": "2026-10-11T16:18:04Z",
+      "crawler_version": "0.9.4",
+      "config_fingerprint": "sha256:4839b22518e9a55a6166d0893f2ba484f35dbe614d0c1ae3d58fcaba13abdf00",
+      "raw_response": "{\"success\":true,\"results\":[{\"url\":\"https://example.com/?token=SHOULD-BE-REDACTED&page=1\",\"html\":\"<!DOCTYPE html><html lang=\\\"en\\\"><head><meta charset=\\\"utf-8\\\"><link rel=\\\"icon\\\" href=\\\"data:,\\\"><meta name=\\\"viewport\\\" content=\\\"width=device-width,initial-scale=1\\\"><title>Example Domain</title><style>html{color-scheme:light dark;background:light-dark(#eee,#222)}body{font:16px/1.6 system-ui,sans-se...(truncated in evidence)",
+      "status": "succeeded",
+      "failure_class": null,
+      "artifact_ref": null,
+      "attempts": 1,
+      "failures": [],
+      "markdown": {
+        "text": "This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.\n\u0647\u0630\u0627 \u0627\u0644\u0646\u0637\u0627\u0642 \u0645\u064f\u062e\u0635\u0635 \u0644\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0641\u064a \u0623\u0645\u062b\u0644\u0629 \u0627\u0644\u062a\u0648\u062b\u064a\u0642 \u062f\u0648\u0646 \u0627\u0644\u062d\u0627\u062c\u0629 \u0625\u0644\u0649 \u0625\u0630\u0646. \u0647\u0630\u0647 \u0644\u064a\u0633\u062a \u062e\u062f\u0645\u0629\u060c \u064a\u064f\u0631\u062c\u0649 \u062a\u062c\u0646\u0628 \u0627\u0644\u0627\u0639\u062a\u0645\u0627\u062f \u0639\u0644\u064a\u0647\u0627 \u0644\u0623\u063a\u0631\u0627\u0636 \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631 \u0648\u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629.\n\u8be5\u57df\u540d\u4ec5\u7528\u4e8e\u6587\u6863\u793a\u4f8b\uff0c\u65e0\u9700\u83b7\u5f97\u8bb8\u53ef\u3002\u8fd9\u5e76\u975e\u4e00\u9879\u670d\u52a1\uff0c\u8bf7\u52ff\u5c06\u5176\u7528\u4e8e\u6d4b\u8bd5\u548c\u76d1\u63a7\u76ee\u7684\u3002\nL\u2019usage de ce domaine est r\u00e9serv\u00e9 \u00e0 des exemples de documentation, sans autorisation pr\u00e9alable. Il ne s\u2019agit pas d\u2019un service ; son utilisation \u00e0 des fins de test ou de surveillance est \u00e0 \u00e9viter.\n\u0414\u0430\u043d\u043d\u044b\u0439 \u0434\u043e\u043c\u0435\u043d \u043f\u0440\u0435\u0434\u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d \u0434\u043b\u044f \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u044f \u0432 \u043f\u0440\u0438\u043c\u0435\u0440\u0430\u0445 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u0438 \u0431\u0435\u0437 \u043d\u0435\u043e\u0431\u0445\u043e\u0434\u0438\u043c\u043e\u0441\u0442\u0438 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u044f \u043f\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0433\u043e \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043d\u0438\u044f. \u042d\u0442\u043e \u043d\u0435 \u0441\u0435\u0440\u0432\u0438\u0441; \u043d\u0435 \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u0442\u0441\u044f \u0435\u0433\u043e \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435 \u0434\u043b\u044f \u0442\u0435\u0441\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043c\u043e\u043d\u0438\u0442\u043e\u0440\u0438\u043d\u0433\u0430.\nEste dominio est\u00e1 destinado al uso en ejemplos de documentaci\u00f3n sin necesidad de permiso. Esto no es un servicio; evitar utilizarlo para realizar pruebas o monitoreos.\n[Learn more](https://iana.org/help/example-domains)\n",
+        "source": "raw_markdown",
+        "reason": "fit_markdown is empty"
+      },
+      "raw_checksum": "sha256:119591a0302041b5e5279b6ff4abaf0d8244cec8a9164817ed7d72ca94f99e31"
+    },
+    "S2": {
+      "run_id": "run-4-mv411p91",
+      "source_url": "https://example.com/",
+      "started_at": "2026-10-11T16:18:06Z",
+      "finished_at": "2026-10-11T16:18:06Z",
+      "crawler_version": "0.9.4",
+      "config_fingerprint": "sha256:4839b22518e9a55a6166d0893f2ba484f35dbe614d0c1ae3d58fcaba13abdf00",
+      "raw_response": "{\"detail\":\"Authentication required\"}...(truncated in evidence)",
+      "status": "failed_terminal",
+      "failure_class": "auth",
+      "artifact_ref": null,
+      "attempts": 1,
+      "failures": [
+        {
+          "run_id": "run-4-mv411p91",
+          "class": "auth",
+          "http_status": 401,
+          "retryable": false,
+          "attempt": 1,
+          "message_digest": null
+        }
+      ],
+      "markdown": null,
+      "raw_checksum": "sha256:9a15b0a3fe33ddcd5af28fef761c068e8d2c5a3d736275728f3fbeef79f0cbc9"
+    },
+    "S3": {
+      "run_id": "run-6-mv411t7j",
+      "source_url": "https://example.com/",
+      "started_at": "2026-10-11T16:18:11Z",
+      "finished_at": "2026-10-11T16:18:17Z",
+      "crawler_version": "unknown",
+      "config_fingerprint": "sha256:4839b22518e9a55a6166d0893f2ba484f35dbe614d0c1ae3d58fcaba13abdf00",
+      "raw_response": null,
+      "status": "failed_terminal",
+      "failure_class": "network",
+      "artifact_ref": null,
+      "attempts": 3,
+      "failures": [
+        {
+          "run_id": "run-6-mv411t7j",
+          "class": "network",
+          "http_status": null,
+          "retryable": true,
+          "attempt": 1,
+          "message_digest": null
+        },
+        {
+          "run_id": "run-6-mv411t7j",
+          "class": "network",
+          "http_status": null,
+          "retryable": true,
+          "attempt": 2,
+          "message_digest": null
+        },
+        {
+          "run_id": "run-6-mv411t7j",
+          "class": "network",
+          "http_status": null,
+          "retryable": true,
+          "attempt": 3,
+          "message_digest": null
+        }
+      ],
+      "markdown": null,
+      "raw_checksum": "sha256:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    "S4": null
+  }
+}
