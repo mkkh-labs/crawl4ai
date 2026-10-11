@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-10-11T16:21:23Z",
+  "rollback": {
+    "to": "crawl4ai-self-hosted:0.9.4-known-safe",
+    "image": "sha256:4e291bacd07d0b99f493932228e8bdf8dc7d5a7020bbfc850ac97e9f89812360",
+    "seconds_to_healthy": 7.1,
+    "health": {
+      "status": "ok",
+      "timestamp": 1791735676.8890212,
+      "version": "0.9.4"
+    },
+    "n8n_to_gateway_status": 200
+  },
+  "roll_forward": {
+    "to": "crawl4ai-self-hosted:0.9.4",
+    "image": "sha256:459878969bafff624eee19c375b7e97250b07fcc6c379726e1c12e10575f8888",
+    "seconds_to_healthy": 6.8
+  },
+  "verdict": "pass"
+}

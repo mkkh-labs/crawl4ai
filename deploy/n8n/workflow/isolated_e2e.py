@@ -13,6 +13,8 @@ the real workflow with the n8n CLI:
   S2 wrong token  failed_terminal/auth after exactly 1 attempt (no retry)
   S3 gateway down failed_terminal/network after exactly 3 attempts (bounded)
   S4 invalid URL  the run fails visibly and never calls the gateway
+  S5 SSRF scope   n8n's own guard allows `crawl4ai` by name, blocks the same
+                  gateway by IP and the cloud metadata address
 
 Usage:
     python deploy/n8n/workflow/isolated_e2e.py \
@@ -252,6 +254,79 @@ def caller_workflow(target_id: str, url: str) -> dict:
     }
 
 
+def ssrf_probe_workflow(gateway_ip: str) -> dict:
+    """Three HTTP Request nodes under n8n's own SSRF guard: the gateway by its
+    allowed name, the gateway by IP, and the cloud metadata address."""
+    targets = [
+        ("by name", "http://crawl4ai:11235/health"),
+        ("by IP", f"http://{gateway_ip}:11235/health"),
+        ("metadata", "http://169.254.169.254/latest/meta-data/"),
+    ]
+    nodes = [
+        {
+            "parameters": {},
+            "id": "start",
+            "name": "Start",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [0, 0],
+        }
+    ]
+    for i, (label, url) in enumerate(targets):
+        nodes.append(
+            {
+                "parameters": {"url": url, "options": {"timeout": 5000}},
+                "id": f"probe{i}",
+                "name": f"Gateway {label}",
+                "type": "n8n-nodes-base.httpRequest",
+                "typeVersion": 4.2,
+                "position": [240, i * 160],
+                "onError": "continueRegularOutput",
+            }
+        )
+    return {
+        "id": "c4aiE2eSsrfProbe",
+        "name": "ssrf probe",
+        "active": False,
+        "nodes": nodes,
+        "connections": {
+            "Start": {
+                "main": [
+                    [{"node": n["name"], "type": "main", "index": 0} for n in nodes[1:]]
+                ]
+            }
+        },
+        "settings": {"executionOrder": "v1"},
+    }
+
+
+def run_ssrf_probe() -> dict:
+    ip = docker(
+        "inspect",
+        "-f",
+        '{{(index .NetworkSettings.Networks "%s").IPAddress}}' % NET,
+        GW,
+    ).stdout.strip()
+    put_file("/tmp/ssrf.json", json.dumps(ssrf_probe_workflow(ip)))
+    n8n_cli("import:workflow", "--input=/tmp/ssrf.json")
+    p = n8n_cli(
+        "execute", "--id=c4aiE2eSsrfProbe", "--rawOutput", check=False, timeout=300
+    )
+    out = p.stdout
+    data = json.loads(out[out.find("{") :])
+    run = data["data"]["resultData"]["runData"]
+    result = {"gateway_ip": ip}
+    for label in ("by name", "by IP", "metadata"):
+        item = run[f"Gateway {label}"][0]["data"]["main"][0][0]["json"]
+        err = item.get("error") if isinstance(item, dict) else None
+        result[label] = (
+            {"blocked": True, "error": err.get("name")}
+            if isinstance(err, dict)
+            else {"blocked": False, "version": item.get("version")}
+        )
+    return result
+
+
 def process_publications() -> None:
     """Let the throwaway n8n server process the publication outbox.
 
@@ -375,6 +450,22 @@ def main(argv=None) -> int:
             ),
             results,
             tail,
+        )
+
+        probe = run_ssrf_probe()
+        records["S5"] = probe
+        ok = (
+            probe["by name"]
+            == {"blocked": False, "version": probe["by name"].get("version")}
+            and bool(probe["by name"].get("version"))
+            and probe["by IP"].get("error") == "SsrfBlockedIpError"
+            and probe["metadata"].get("error") == "SsrfBlockedIpError"
+        )
+        check(
+            "S5 n8n SSRF guard: name allowed, IP and metadata blocked",
+            ok,
+            json.dumps(probe),
+            results,
         )
 
         docker("stop", GW)

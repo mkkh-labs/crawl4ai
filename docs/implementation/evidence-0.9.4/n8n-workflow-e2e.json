@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-11T16:18:21Z",
+  "generated_at": "2026-10-11T16:23:46Z",
   "gateway_image": "crawl4ai-self-hosted:0.9.4",
   "n8n_image": "lab/n8n:2.41.6-custom3",
   "isolation": "throwaway gateway + throwaway n8n (SQLite) on a private test network; one-time token, discarded",
@@ -16,9 +16,14 @@
       "detail": "{\"status\": \"failed_terminal\", \"failure_class\": \"auth\", \"attempts\": 1}"
     },
     {
+      "scenario": "S5 n8n SSRF guard: name allowed, IP and metadata blocked",
+      "passed": true,
+      "detail": "{\"gateway_ip\": \"172.19.0.2\", \"by name\": {\"blocked\": false, \"version\": \"0.9.4\"}, \"by IP\": {\"blocked\": true, \"error\": \"SsrfBlockedIpError\"}, \"metadata\": {\"blocked\": true, \"error\": \"SsrfBlockedIpError\"}}"
+    },
+    {
       "scenario": "S3 gateway down: bounded retries then terminal network",
       "passed": true,
-      "detail": "{\"status\": \"failed_terminal\", \"failure_class\": \"network\", \"attempts\": 3, \"elapsed_s\": 8.2}"
+      "detail": "{\"status\": \"failed_terminal\", \"failure_class\": \"network\", \"attempts\": 3, \"elapsed_s\": 8.3}"
     },
     {
       "scenario": "S4 invalid URL fails visibly",
@@ -28,10 +33,10 @@
   ],
   "records": {
     "S1": {
-      "run_id": "run-2-mv411nh1",
+      "run_id": "run-2-mv418lcj",
       "source_url": "https://example.com/?token=%5BREDACTED%5D&page=1",
-      "started_at": "2026-10-11T16:18:03Z",
-      "finished_at": "2026-10-11T16:18:04Z",
+      "started_at": "2026-10-11T16:23:27Z",
+      "finished_at": "2026-10-11T16:23:28Z",
       "crawler_version": "0.9.4",
       "config_fingerprint": "sha256:4839b22518e9a55a6166d0893f2ba484f35dbe614d0c1ae3d58fcaba13abdf00",
       "raw_response": "{\"success\":true,\"results\":[{\"url\":\"https://example.com/?token=SHOULD-BE-REDACTED&page=1\",\"html\":\"<!DOCTYPE html><html lang=\\\"en\\\"><head><meta charset=\\\"utf-8\\\"><link rel=\\\"icon\\\" href=\\\"data:,\\\"><meta name=\\\"viewport\\\" content=\\\"width=device-width,initial-scale=1\\\"><title>Example Domain</title><style>html{color-scheme:light dark;background:light-dark(#eee,#222)}body{font:16px/1.6 system-ui,sans-se...(truncated in evidence)",
@@ -45,13 +50,13 @@
         "source": "raw_markdown",
         "reason": "fit_markdown is empty"
       },
-      "raw_checksum": "sha256:119591a0302041b5e5279b6ff4abaf0d8244cec8a9164817ed7d72ca94f99e31"
+      "raw_checksum": "sha256:0b21c0a1932dd4613ce14728227ec945cc62a423cfc3c6dd3b4b9fa3f99d427e"
     },
     "S2": {
-      "run_id": "run-4-mv411p91",
+      "run_id": "run-4-mv418n63",
       "source_url": "https://example.com/",
-      "started_at": "2026-10-11T16:18:06Z",
-      "finished_at": "2026-10-11T16:18:06Z",
+      "started_at": "2026-10-11T16:23:30Z",
+      "finished_at": "2026-10-11T16:23:30Z",
       "crawler_version": "0.9.4",
       "config_fingerprint": "sha256:4839b22518e9a55a6166d0893f2ba484f35dbe614d0c1ae3d58fcaba13abdf00",
       "raw_response": "{\"detail\":\"Authentication required\"}...(truncated in evidence)",
@@ -61,7 +66,7 @@
       "attempts": 1,
       "failures": [
         {
-          "run_id": "run-4-mv411p91",
+          "run_id": "run-4-mv418n63",
           "class": "auth",
           "http_status": 401,
           "retryable": false,
@@ -72,11 +77,26 @@
       "markdown": null,
       "raw_checksum": "sha256:9a15b0a3fe33ddcd5af28fef761c068e8d2c5a3d736275728f3fbeef79f0cbc9"
     },
+    "S5": {
+      "gateway_ip": "172.19.0.2",
+      "by name": {
+        "blocked": false,
+        "version": "0.9.4"
+      },
+      "by IP": {
+        "blocked": true,
+        "error": "SsrfBlockedIpError"
+      },
+      "metadata": {
+        "blocked": true,
+        "error": "SsrfBlockedIpError"
+      }
+    },
     "S3": {
-      "run_id": "run-6-mv411t7j",
+      "run_id": "run-7-mv418tn3",
       "source_url": "https://example.com/",
-      "started_at": "2026-10-11T16:18:11Z",
-      "finished_at": "2026-10-11T16:18:17Z",
+      "started_at": "2026-10-11T16:23:38Z",
+      "finished_at": "2026-10-11T16:23:44Z",
       "crawler_version": "unknown",
       "config_fingerprint": "sha256:4839b22518e9a55a6166d0893f2ba484f35dbe614d0c1ae3d58fcaba13abdf00",
       "raw_response": null,
@@ -86,7 +106,7 @@
       "attempts": 3,
       "failures": [
         {
-          "run_id": "run-6-mv411t7j",
+          "run_id": "run-7-mv418tn3",
           "class": "network",
           "http_status": null,
           "retryable": true,
@@ -94,7 +114,7 @@
           "message_digest": null
         },
         {
-          "run_id": "run-6-mv411t7j",
+          "run_id": "run-7-mv418tn3",
           "class": "network",
           "http_status": null,
           "retryable": true,
@@ -102,7 +122,7 @@
           "message_digest": null
         },
         {
-          "run_id": "run-6-mv411t7j",
+          "run_id": "run-7-mv418tn3",
           "class": "network",
           "http_status": null,
           "retryable": true,
