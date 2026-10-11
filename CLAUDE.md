@@ -35,6 +35,8 @@ Alt text — n8n calls an authenticated private Crawl4AI API, which gates config
 | `deploy/docker/config.yml` | Runtime security/resource defaults |
 | `deploy/docker/entrypoint.sh` | Redis secret + fail-closed socket bind |
 | `deploy/docker/browser_defaults.py` | Server-owned browser policy for request-built configs (pool signature) |
+| `deploy/docker/seccomp/` | Generated Chromium seccomp profile (renderer sandbox) and its generator |
+| `deploy/n8n/workflow/` | Generated n8n workflow, JS contract port held to parity with `contract.py`, isolated real-n8n E2E |
 | `deploy/ui/` | Streamlit operator console (loopback-only compose, file secret) |
 | `deploy/gateway/` | E2E, soak, rendered-topology and dependency-audit gates |
 | `deploy/docker/tests/` | Docker/security regression suite |
@@ -83,12 +85,15 @@ Alt text — n8n calls an authenticated private Crawl4AI API, which gates config
 | `deploy/docker/config.yml` | Keep security enabled, 300s wall clock, bounded body/pages/depth, Redis-backed rate limiter, explicit trusted hosts |
 | `deploy/docker/requirements.txt` | Preserve `mcp>=1.18.0,<2` until bridge migrates to MCP v2 |
 | `deploy/docker/entrypoint.sh` | Preserve fail-closed bind when credentials are absent |
+| `deploy/docker/seccomp/chromium.json` | Generated only (`build_chromium_profile.py`); keep `CRAWL4AI_CHROMIUM_SANDBOX=true` with it |
+| `deploy/n8n/workflow/crawl4ai-crawl.workflow.json` | Generated only (`build_workflow.py`); edit `contract.js` and `contract.py` together |
 
 ## NEVER run
 - `git reset --hard`, `git clean -fdx`, or force-push `main` during this implementation.
 - Production with `latest`, v0.9.2, `--privileged`, Docker socket mounts, disabled auth, or a host-published crawler port.
 - `limits.wall_clock_s: 0`, unbounded PDF caps, `CRAWL4AI_HOOKS_ENABLED=true`, or `CRAWL4AI_EXECUTE_JS_ENABLED=true` for MVP.
 - Retry storms against blocked/4xx targets.
+- `seccomp=unconfined`, `CRAWL4AI_CHROMIUM_SANDBOX=false`, or `--no-sandbox` in production; roll back instead.
 
 ## NEVER edit by hand
 - `.git/**`.

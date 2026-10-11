@@ -170,12 +170,42 @@ then open http://127.0.0.1:8501. Pages: Status, Crawl (through the n8n contract)
 (provenance only, never page bodies), Self-test (version floor, auth, GHSA-5w5p, metadata SSRF).
 It has no login of its own: keep the loopback bind.
 
+### Chromium renderer sandbox (F-04)
+The gateway runs Chromium **without** `--no-sandbox`. Compose sets
+`CRAWL4AI_CHROMIUM_SANDBOX=true` and applies
+`seccomp=./deploy/docker/seccomp/chromium.json`. The profile is Docker's default
+plus clone/unshare for USER/PID/NET namespaces and chroot, with netfilter
+netlink denied.
+
+- **Verify live:** `docker exec -i crawl4ai-crawl4ai-1 python3 - < deploy/gateway/verify_sandbox.py` must print `"verdict": "pass"` (run a crawl first so a renderer exists).
+- **Regenerate the profile** after a Docker major upgrade:
+  1. Vendor that version's `default.json` as `deploy/docker/seccomp/docker-default-<ver>.json`.
+  2. Run `python deploy/docker/seccomp/build_chromium_profile.py <that file> deploy/docker/seccomp/chromium.json`.
+  3. Update the test path and run `pytest deploy/docker/tests/test_security_gateway_topology.py`.
+- **If Chromium logs "No usable sandbox"**, the profile was not applied: check `docker inspect … SecurityOpt`. Do **not** set `CRAWL4AI_CHROMIUM_SANDBOX=false` or `seccomp=unconfined` to work around it. Roll back to `0.9.4-known-safe` instead.
+
+### n8n workflow
+Install and smoke-test per `deploy/n8n/workflow/README.md`: create the
+credential, import, **publish**, then test. n8n 2.x only calls published
+sub-workflows.
+
+### Docker Desktop instability (observed 2026-10-11)
+On this host Docker Desktop was stopped, made unreachable or quit by
+clients outside this project. During such a window, `docker exec`-based
+checks fail. The soak counts those samples as *unobserved*, never as healthy.
+If more than 20% of a phase is unobserved, re-run the gate once Docker is
+stable; never read such a run as a pass.
+
 ### Release gates to run before promotion
-1. `pytest deploy/docker/tests --ignore-glob='deploy/docker/tests/test_[0-9]_*.py' tests/unit/test_pdf_*.py tests/unit/test_config_provenance.py tests/unit/test_egress_policy.py tests/unit/test_robots_query_rules.py tests/gateway -q`
+1. `pytest deploy/docker/tests --ignore-glob='deploy/docker/tests/test_[0-9]_*.py' tests/unit/test_pdf_*.py tests/unit/test_config_provenance.py tests/unit/test_egress_policy.py tests/unit/test_robots_query_rules.py tests/unit/test_chromium_sandbox_policy.py tests/gateway -q`
 2. Image dependency gate, for both images: `pip list --format=freeze` from the image (not `pip freeze`, which hides pip and setuptools) → `pip-audit -r … --no-deps --disable-pip --format json` → `deploy/gateway/audit_gate.py`.
 3. E2E from n8n's namespace: `docker run --rm --network container:n8n-n8n-1 -e CRAWL4AI_API_TOKEN -v "$PWD/deploy:/w/deploy:ro" python:3.12-slim-bookworm python /w/deploy/gateway/e2e.py --base-url http://crawl4ai:11235 --runs 20`.
 4. Concurrent soak: `python deploy/gateway/soak.py --container crawl4ai-crawl4ai-1 --jobs 60 --concurrency 4 --cooldown-s 720`.
    Cooldown must exceed the hot-pool idle TTL (2 × `idle_ttl_sec` = 600 s) plus one janitor interval (60 s), or a pooled browser is still legitimately alive.
+5. Sandbox: `docker exec -i crawl4ai-crawl4ai-1 python3 - < deploy/gateway/verify_sandbox.py` → `"verdict": "pass"`.
+6. n8n workflow in an isolated n8n: `python deploy/n8n/workflow/isolated_e2e.py --gateway-image crawl4ai-self-hosted:0.9.4 --n8n-image lab/n8n:2.41.6-custom3 --out docs/implementation/evidence-0.9.4/n8n-workflow-e2e.json` → all of S1–S5 pass.
+7. Rollback drill to `0.9.4-known-safe` and back: ≤ 60 s to healthy, n8n reaches the gateway.
+8. Re-score AC-15 against `docs/implementation/production-score.md`.
 
 ## Session operations
 | Situation | Claude Code action |
