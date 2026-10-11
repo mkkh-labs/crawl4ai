@@ -41,6 +41,25 @@ BROWSER_DISABLE_OPTIONS = [
 ]
 
 
+def chromium_sandbox_enabled() -> bool:
+    """Operator switch for Chromium's renderer sandbox.
+
+    Read from the process environment only (CRAWL4AI_CHROMIUM_SANDBOX=true),
+    never from a BrowserConfig, so an API request cannot change it. The host
+    must allow unprivileged user namespaces, e.g. the Docker seccomp profile in
+    deploy/docker/seccomp/chromium.json. Without that Chromium refuses to start
+    ("No usable sandbox"), which fails closed rather than running unsandboxed.
+    """
+    return os.environ.get("CRAWL4AI_CHROMIUM_SANDBOX", "false").lower() == "true"
+
+
+def _apply_sandbox_policy(args: List[str]) -> List[str]:
+    """Drop --no-sandbox when the operator enabled the renderer sandbox."""
+    if chromium_sandbox_enabled():
+        return [a for a in args if a != "--no-sandbox"]
+    return args
+
+
 class ManagedBrowser:
     """
     Manages the browser process and context. This class allows to connect to the browser using CDP protocol.
@@ -124,7 +143,7 @@ class ManagedBrowser:
         elif config.proxy_config:
             flags.append(f"--proxy-server={config.proxy_config.server}")
         # dedupe
-        return list(dict.fromkeys(flags))
+        return _apply_sandbox_policy(list(dict.fromkeys(flags)))
 
     browser_type: str
     user_data_dir: str
@@ -867,7 +886,9 @@ class BrowserManager:
 
             launch_kwargs = {
                 "headless": self.config.headless,
-                "args": list(dict.fromkeys(cli_args)),  # dedupe
+                "args": _apply_sandbox_policy(list(dict.fromkeys(cli_args))),  # dedupe
+                # Playwright appends --no-sandbox itself unless told otherwise.
+                "chromium_sandbox": chromium_sandbox_enabled(),
                 "viewport": {
                     "width": self.config.viewport_width,
                     "height": self.config.viewport_height,
@@ -1139,9 +1160,15 @@ class BrowserManager:
             args.extend(self.config.extra_args)
 
         # Deduplicate args
-        args = list(dict.fromkeys(args))
-        
+        args = _apply_sandbox_policy(list(dict.fromkeys(args)))
+
         browser_args = {"headless": self.config.headless, "args": args}
+        # Playwright appends --no-sandbox itself unless chromium_sandbox is set.
+        if chromium_sandbox_enabled() and self.config.browser_type not in (
+            "firefox",
+            "webkit",
+        ):
+            browser_args["chromium_sandbox"] = True
 
         # On Windows, passing channel='chromium' (the default) causes Playwright
         # to look for a system Chrome installation instead of using the bundled
