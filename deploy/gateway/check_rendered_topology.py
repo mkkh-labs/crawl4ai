@@ -47,6 +47,19 @@ def check(rendered: dict) -> list[str]:
             f"fork's baked-in config.yml hardening: {image}"
         )
 
+    opts = svc.get("security_opt") or []
+    if not any(o.startswith("seccomp=") and o.endswith("chromium.json") for o in opts):
+        problems.append("Chromium seccomp profile (chromium.json) not applied")
+    if any("unconfined" in o for o in opts):
+        problems.append(f"an unconfined security profile is set: {opts}")
+    env = svc.get("environment") or {}
+    if isinstance(env, list):
+        env = dict(e.split("=", 1) for e in env if "=" in e)
+    if str(env.get("CRAWL4AI_CHROMIUM_SANDBOX", "")).lower() != "true":
+        problems.append(
+            "CRAWL4AI_CHROMIUM_SANDBOX is not true; Chromium would run --no-sandbox"
+        )
+
     if svc.get("read_only") is not True:
         problems.append("root filesystem is not read-only")
     if svc.get("privileged"):

@@ -11,6 +11,9 @@ x-base-config: &base-config
     # Auth token is REQUIRED. `:?` makes compose fail closed rather than
     # starting an unauthenticated service. Export it before `docker compose up`.
     - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:?set CRAWL4AI_API_TOKEN before deploying the gateway}
+    # Run Chromium's renderer sandbox (no --no-sandbox). Requires the seccomp
+    # profile below; without it Chromium refuses to start (fails closed).
+    - CRAWL4AI_CHROMIUM_SANDBOX=true
     # Uncomment to set default environment variables (will overwrite .llm.env)
     # - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     # - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
@@ -28,6 +31,10 @@ x-base-config: &base-config
     - ALL
   security_opt:
     - no-new-privileges:true
+    # Docker's default profile plus only what Chromium's namespace sandbox
+    # needs (USER/PID/NET namespaces, chroot), with netfilter netlink denied.
+    # Generated: deploy/docker/seccomp/build_chromium_profile.py.
+    - seccomp=./deploy/docker/seccomp/chromium.json
   # Read-only root filesystem; only these paths are writable (tmpfs).
   read_only: true
   tmpfs:

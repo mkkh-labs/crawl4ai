@@ -18,6 +18,7 @@ substring search matching a word inside a comment and guarding nothing.
 
 import os
 import sys
+from pathlib import Path
 
 import pytest
 import yaml
@@ -253,3 +254,88 @@ class TestHostGuardBehavior:
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))
+
+
+class TestChromiumSandbox:
+    """F-04: the gateway runs Chromium's renderer sandbox, not --no-sandbox.
+
+    Verified live on 2026-10-11: under chromium.json, renderers get their own
+    user, PID and net namespaces (NSpid 51 4 1) and Seccomp mode 2, with no
+    --no-sandbox in their command line.
+    """
+
+    def test_compose_enables_the_sandbox(self, service):
+        env = service.get("environment") or []
+        env = env if isinstance(env, list) else [f"{k}={v}" for k, v in env.items()]
+        assert "CRAWL4AI_CHROMIUM_SANDBOX=true" in env
+
+    def test_compose_applies_the_chromium_seccomp_profile(self, service):
+        opts = service.get("security_opt") or []
+        assert "seccomp=./deploy/docker/seccomp/chromium.json" in opts
+        assert "no-new-privileges:true" in opts
+        assert not any("unconfined" in o for o in opts)
+
+
+SECCOMP_DIR = Path(__file__).resolve().parents[1] / "seccomp"
+
+
+def _load_profile():
+    import json
+
+    return json.loads((SECCOMP_DIR / "chromium.json").read_text())
+
+
+def test_committed_profile_matches_its_generator(tmp_path):
+    """chromium.json is generated, never hand-edited."""
+    import subprocess
+    import sys
+
+    out = tmp_path / "chromium.json"
+    subprocess.run(
+        [
+            sys.executable,
+            str(SECCOMP_DIR / "build_chromium_profile.py"),
+            str(SECCOMP_DIR / "docker-default-v29.8.2.json"),
+            str(out),
+        ],
+        check=True,
+    )
+    assert out.read_text() == (SECCOMP_DIR / "chromium.json").read_text()
+
+
+def test_profile_only_adds_the_chromium_rules():
+    import json
+
+    base = json.loads((SECCOMP_DIR / "docker-default-v29.8.2.json").read_text())
+    prof = _load_profile()
+    assert prof["defaultAction"] == base["defaultAction"] == "SCMP_ACT_ERRNO"
+    assert prof["syscalls"][: len(base["syscalls"])] == base["syscalls"]
+    added = prof["syscalls"][len(base["syscalls"]) :]
+    assert {n for r in added for n in r["names"]} == {
+        "clone",
+        "unshare",
+        "chroot",
+        "socket",
+    }
+
+
+def test_profile_never_allows_mount_uts_ipc_or_cgroup_namespaces():
+    CLONE_NEWNS, CLONE_NEWCGROUP = 0x00020000, 0x02000000
+    CLONE_NEWUTS, CLONE_NEWIPC = 0x04000000, 0x08000000
+    forbidden = CLONE_NEWNS | CLONE_NEWCGROUP | CLONE_NEWUTS | CLONE_NEWIPC
+    for rule in _load_profile()["syscalls"]:
+        if rule.get("comment") != "chromium namespace sandbox":
+            continue
+        (arg,) = rule["args"]
+        assert arg["op"] == "SCMP_CMP_MASKED_EQ"
+        assert arg["value"] & forbidden == forbidden  # mask covers them...
+        assert arg["valueTwo"] & forbidden == 0  # ...and requires them unset
+
+
+def test_profile_denies_netfilter_netlink():
+    rules = [r for r in _load_profile()["syscalls"] if r["names"] == ["socket"]]
+    assert any(
+        r["action"] == "SCMP_ACT_ERRNO"
+        and {(a["index"], a["value"]) for a in r["args"]} == {(0, 16), (2, 12)}
+        for r in rules
+    )
