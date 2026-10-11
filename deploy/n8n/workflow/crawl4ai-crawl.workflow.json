@@ -1,0 +1,379 @@
+{
+  "name": "Crawl4AI: crawl one URL (private gateway)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "url"
+            }
+          ]
+        }
+      },
+      "id": "called-by-workflow",
+      "name": "When called by another workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "manual-test",
+      "name": "Manual test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "u",
+              "name": "url",
+              "value": "https://example.com/",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "example-input",
+      "name": "Example input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst url = String($json.url ?? \"\").trim();\nlet valid = false;\ntry {\n  const u = new URL(url);\n  valid = (u.protocol === \"http:\" || u.protocol === \"https:\") && Boolean(u.hostname);\n} catch (e) {\n  valid = false;\n}\nif (!valid) {\n  throw new Error(\"crawl4ai: `url` must be an absolute http(s) URL\");\n}\nreturn {\n  json: {\n    url,\n    run_id: \"run-\" + $execution.id + \"-\" + Date.now().toString(36),\n    started_at: new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\"),\n    request: { urls: [url], browser_config: {}, crawler_config: {\"stream\": false, \"cache_mode\": \"bypass\"} },\n  },\n};\n"
+      },
+      "id": "init-run",
+      "name": "Init run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://crawl4ai:11235/health",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "gateway-version",
+      "name": "Gateway version",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://crawl4ai:11235/crawl",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Init run').first().json.request) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 330000
+        }
+      },
+      "id": "post-crawl",
+      "name": "POST /crawl",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Crawl4AI Gateway"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// JavaScript port of deploy/n8n/contract.py for n8n Code nodes.\n//\n// The Python module is the specification. tests/gateway/test_n8n_workflow.py\n// runs both implementations over the same inputs and fails on any divergence,\n// so edit the two together. build_workflow.py inlines this file, unchanged,\n// into the workflow's Code nodes; it must not require() anything.\n\nconst SUCCEEDED = \"succeeded\";\nconst FAILED_RETRYABLE = \"failed_retryable\";\nconst FAILED_TERMINAL = \"failed_terminal\";\nconst MAX_ATTEMPTS = 3;\nconst BACKOFF_BASE_S = 2.0;\nconst BACKOFF_CAP_S = 60.0;\n\nconst BLOCKED_MARKERS =\n  /\\b(403|401|blocked|forbidden|captcha|cloudflare|bot detection|access denied|rate.?limited|too many requests)\\b/i;\n\nconst STATUS_MAP = {\n  400: [\"validation\", false],\n  401: [\"auth\", false],\n  403: [\"auth\", false],\n  413: [\"validation\", false],\n  422: [\"validation\", false],\n  429: [\"rate_limit\", true],\n  500: [\"server\", true],\n  502: [\"server\", true],\n  503: [\"capacity\", true],\n  504: [\"deadline\", true],\n};\n\nfunction cls(status, failureClass, retryable) {\n  return { status, failure_class: failureClass, retryable };\n}\n\nfunction classifyHttp(code) {\n  if (code >= 200 && code < 300) return cls(SUCCEEDED, null, false);\n  let failureClass;\n  let retryable;\n  if (Object.prototype.hasOwnProperty.call(STATUS_MAP, code)) {\n    [failureClass, retryable] = STATUS_MAP[code];\n  } else if (code >= 400 && code < 500) {\n    [failureClass, retryable] = [\"validation\", false];\n  } else if (code >= 500) {\n    [failureClass, retryable] = [\"server\", true];\n  } else {\n    [failureClass, retryable] = [\"unknown\", false];\n  }\n  return cls(retryable ? FAILED_RETRYABLE : FAILED_TERMINAL, failureClass, retryable);\n}\n\nfunction isMapping(v) {\n  return v !== null && typeof v === \"object\" && !Array.isArray(v);\n}\n\nfunction classifyResultFailure(results) {\n  const messages = results\n    .filter(isMapping)\n    .map((r) => String(r.error_message || r.error || \"\"))\n    .join(\" \");\n  if (BLOCKED_MARKERS.test(messages)) return cls(FAILED_TERMINAL, \"blocked_target\", false);\n  return cls(FAILED_TERMINAL, \"unknown\", false);\n}\n\nfunction classifyBody(body) {\n  if (!isMapping(body)) return cls(FAILED_TERMINAL, \"content_contract\", false);\n  if (!(\"success\" in body) || !(\"results\" in body)) {\n    return cls(FAILED_TERMINAL, \"content_contract\", false);\n  }\n  const results = body.results;\n  if (!Array.isArray(results) || results.length === 0) {\n    return cls(FAILED_TERMINAL, \"content_contract\", false);\n  }\n  if (body.success !== true) return classifyResultFailure(results);\n  for (const item of results) {\n    if (!isMapping(item)) return cls(FAILED_TERMINAL, \"content_contract\", false);\n    if (item.success !== true) return classifyResultFailure(results);\n  }\n  return cls(SUCCEEDED, null, false);\n}\n\nfunction classifyResponse(code, body) {\n  const byStatus = classifyHttp(code);\n  if (byStatus.status !== SUCCEEDED) return byStatus;\n  return classifyBody(body);\n}\n\nfunction classifyTransportError() {\n  return cls(FAILED_RETRYABLE, \"network\", true);\n}\n\nfunction shouldRetry(classification, attempt) {\n  return Boolean(classification.retryable) && attempt < MAX_ATTEMPTS;\n}\n\nfunction retryDelaySeconds(attempt, retryAfter) {\n  if (retryAfter !== undefined && retryAfter !== null && retryAfter !== \"\") {\n    const parsed = Number(retryAfter);\n    if (Number.isFinite(parsed) && parsed >= 0) return Math.min(parsed, BACKOFF_CAP_S);\n  }\n  return Math.min(Math.pow(BACKOFF_BASE_S, attempt), BACKOFF_CAP_S);\n}\n\n// No canonicalJson here on purpose: JSON.stringify formats numbers\n// differently from Python (1.0 -> \"1\", 1e-07 -> \"1e-7\"), so a checksum over a\n// re-serialized body would silently diverge. The workflow hashes the raw HTTP\n// body bytes instead, which matches contract.raw_checksum(bytes) exactly.\n\nconst CODE_FENCE = \"```\";\n\nfunction codeFenceCount(md) {\n  return (md || \"\").split(CODE_FENCE).length - 1;\n}\n\nfunction inlineCodeCount(md) {\n  const m = (md || \"\").match(/(?<!`)`[^`\\n]+`(?!`)/g);\n  return m ? m.length : 0;\n}\n\nfunction selectMarkdown(raw, fit) {\n  const f = fit || \"\";\n  if (!f.trim()) return { text: raw, source: \"raw_markdown\", reason: \"fit_markdown is empty\" };\n  if (codeFenceCount(f) < codeFenceCount(raw)) {\n    return { text: raw, source: \"raw_markdown\", reason: \"fit_markdown dropped fenced code blocks\" };\n  }\n  if (inlineCodeCount(f) < inlineCodeCount(raw)) {\n    return { text: raw, source: \"raw_markdown\", reason: \"fit_markdown dropped inline code spans\" };\n  }\n  return { text: f, source: \"fit_markdown\", reason: \"fit_markdown preserved code content\" };\n}\n\nconst SECRET_QUERY_KEYS = new Set([\n  \"token\", \"access_token\", \"api_key\", \"apikey\", \"key\",\n  \"signature\", \"sig\", \"password\", \"secret\",\n]);\n\n// Python urllib.parse.quote_plus: keep A-Za-z0-9 _ . - ~, space -> \"+\".\nfunction quotePlus(s) {\n  return encodeURIComponent(s)\n    .replace(/[!'()*]/g, (c) => \"%\" + c.charCodeAt(0).toString(16).toUpperCase())\n    .replace(/%20/g, \"+\");\n}\n\n// Python urllib.parse.unquote_plus (errors=\"replace\" keeps bad escapes).\nfunction unquotePlus(s) {\n  const spaced = s.replace(/\\+/g, \" \");\n  try {\n    return decodeURIComponent(spaced);\n  } catch (e) {\n    return spaced.replace(/%([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));\n  }\n}\n\n// Python redact_url: parse_qsl(keep_blank_values=True) + urlencode.\nfunction redactUrl(url) {\n  const hashAt = url.indexOf(\"#\");\n  const fragment = hashAt >= 0 ? url.slice(hashAt + 1) : null;\n  const noFrag = hashAt >= 0 ? url.slice(0, hashAt) : url;\n  const qAt = noFrag.indexOf(\"?\");\n  if (qAt < 0 || qAt === noFrag.length - 1) return url;\n  const base = noFrag.slice(0, qAt);\n  const pairs = noFrag\n    .slice(qAt + 1)\n    .split(\"&\")\n    .filter((part) => part.length > 0)\n    .map((part) => {\n      const eq = part.indexOf(\"=\");\n      const k = unquotePlus(eq >= 0 ? part.slice(0, eq) : part);\n      const v = unquotePlus(eq >= 0 ? part.slice(eq + 1) : \"\");\n      return [k, SECRET_QUERY_KEYS.has(k.toLowerCase()) ? \"[REDACTED]\" : v];\n    });\n  const query = pairs.map(([k, v]) => quotePlus(k) + \"=\" + quotePlus(v)).join(\"&\");\n  return base + (query ? \"?\" + query : \"\") + (fragment ? \"#\" + fragment : \"\");\n}\n\nconst init = $(\"Init run\").first().json;\nconst attempt = $runIndex + 1;\nconst previous = $runIndex > 0 ? $(\"Classify\").all(0, $runIndex - 1)[0].json.failures : [];\n\nlet k;\nlet httpStatus = null;\nlet rawText = null;\nlet body;\nlet retryAfter = null;\nif ($json.statusCode === undefined || $json.statusCode === null) {\n  k = classifyTransportError();\n} else {\n  httpStatus = Number($json.statusCode);\n  const payload = $json.body !== undefined ? $json.body : $json.data;\n  rawText = typeof payload === \"string\" ? payload : JSON.stringify(payload ?? null);\n  try {\n    body = JSON.parse(rawText);\n  } catch (e) {\n    body = undefined;\n  }\n  const headers = $json.headers || {};\n  retryAfter = headers[\"retry-after\"] ?? headers[\"Retry-After\"] ?? null;\n  k = body === undefined\n    ? cls(FAILED_TERMINAL, \"content_contract\", false)\n    : classifyResponse(httpStatus, body);\n}\n\n// Failure evidence never stores error text: upstream messages can echo the\n// request URL, query string included.\nconst failures = k.status === SUCCEEDED ? previous : previous.concat([{\n  run_id: init.run_id,\n  class: k.failure_class,\n  http_status: httpStatus,\n  retryable: k.retryable,\n  attempt,\n  message_digest: null,\n}]);\n\nconst retry = shouldRetry(k, attempt);\nreturn {\n  json: {\n    attempt,\n    http_status: httpStatus,\n    classification: k,\n    retry,\n    backoff_s: retry ? retryDelaySeconds(attempt, retryAfter) : 0,\n    raw_response: rawText,\n    body: body === undefined ? null : body,\n    failures,\n  },\n};\n"
+      },
+      "id": "classify",
+      "name": "Classify",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "retry",
+              "leftValue": "={{ $json.retry }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "retry",
+      "name": "Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.backoff_s }}",
+        "unit": "seconds"
+      },
+      "id": "backoff",
+      "name": "Backoff",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        -60
+      ],
+      "webhookId": "00000000-0000-4000-8000-00000000c4a1"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// JavaScript port of deploy/n8n/contract.py for n8n Code nodes.\n//\n// The Python module is the specification. tests/gateway/test_n8n_workflow.py\n// runs both implementations over the same inputs and fails on any divergence,\n// so edit the two together. build_workflow.py inlines this file, unchanged,\n// into the workflow's Code nodes; it must not require() anything.\n\nconst SUCCEEDED = \"succeeded\";\nconst FAILED_RETRYABLE = \"failed_retryable\";\nconst FAILED_TERMINAL = \"failed_terminal\";\nconst MAX_ATTEMPTS = 3;\nconst BACKOFF_BASE_S = 2.0;\nconst BACKOFF_CAP_S = 60.0;\n\nconst BLOCKED_MARKERS =\n  /\\b(403|401|blocked|forbidden|captcha|cloudflare|bot detection|access denied|rate.?limited|too many requests)\\b/i;\n\nconst STATUS_MAP = {\n  400: [\"validation\", false],\n  401: [\"auth\", false],\n  403: [\"auth\", false],\n  413: [\"validation\", false],\n  422: [\"validation\", false],\n  429: [\"rate_limit\", true],\n  500: [\"server\", true],\n  502: [\"server\", true],\n  503: [\"capacity\", true],\n  504: [\"deadline\", true],\n};\n\nfunction cls(status, failureClass, retryable) {\n  return { status, failure_class: failureClass, retryable };\n}\n\nfunction classifyHttp(code) {\n  if (code >= 200 && code < 300) return cls(SUCCEEDED, null, false);\n  let failureClass;\n  let retryable;\n  if (Object.prototype.hasOwnProperty.call(STATUS_MAP, code)) {\n    [failureClass, retryable] = STATUS_MAP[code];\n  } else if (code >= 400 && code < 500) {\n    [failureClass, retryable] = [\"validation\", false];\n  } else if (code >= 500) {\n    [failureClass, retryable] = [\"server\", true];\n  } else {\n    [failureClass, retryable] = [\"unknown\", false];\n  }\n  return cls(retryable ? FAILED_RETRYABLE : FAILED_TERMINAL, failureClass, retryable);\n}\n\nfunction isMapping(v) {\n  return v !== null && typeof v === \"object\" && !Array.isArray(v);\n}\n\nfunction classifyResultFailure(results) {\n  const messages = results\n    .filter(isMapping)\n    .map((r) => String(r.error_message || r.error || \"\"))\n    .join(\" \");\n  if (BLOCKED_MARKERS.test(messages)) return cls(FAILED_TERMINAL, \"blocked_target\", false);\n  return cls(FAILED_TERMINAL, \"unknown\", false);\n}\n\nfunction classifyBody(body) {\n  if (!isMapping(body)) return cls(FAILED_TERMINAL, \"content_contract\", false);\n  if (!(\"success\" in body) || !(\"results\" in body)) {\n    return cls(FAILED_TERMINAL, \"content_contract\", false);\n  }\n  const results = body.results;\n  if (!Array.isArray(results) || results.length === 0) {\n    return cls(FAILED_TERMINAL, \"content_contract\", false);\n  }\n  if (body.success !== true) return classifyResultFailure(results);\n  for (const item of results) {\n    if (!isMapping(item)) return cls(FAILED_TERMINAL, \"content_contract\", false);\n    if (item.success !== true) return classifyResultFailure(results);\n  }\n  return cls(SUCCEEDED, null, false);\n}\n\nfunction classifyResponse(code, body) {\n  const byStatus = classifyHttp(code);\n  if (byStatus.status !== SUCCEEDED) return byStatus;\n  return classifyBody(body);\n}\n\nfunction classifyTransportError() {\n  return cls(FAILED_RETRYABLE, \"network\", true);\n}\n\nfunction shouldRetry(classification, attempt) {\n  return Boolean(classification.retryable) && attempt < MAX_ATTEMPTS;\n}\n\nfunction retryDelaySeconds(attempt, retryAfter) {\n  if (retryAfter !== undefined && retryAfter !== null && retryAfter !== \"\") {\n    const parsed = Number(retryAfter);\n    if (Number.isFinite(parsed) && parsed >= 0) return Math.min(parsed, BACKOFF_CAP_S);\n  }\n  return Math.min(Math.pow(BACKOFF_BASE_S, attempt), BACKOFF_CAP_S);\n}\n\n// No canonicalJson here on purpose: JSON.stringify formats numbers\n// differently from Python (1.0 -> \"1\", 1e-07 -> \"1e-7\"), so a checksum over a\n// re-serialized body would silently diverge. The workflow hashes the raw HTTP\n// body bytes instead, which matches contract.raw_checksum(bytes) exactly.\n\nconst CODE_FENCE = \"```\";\n\nfunction codeFenceCount(md) {\n  return (md || \"\").split(CODE_FENCE).length - 1;\n}\n\nfunction inlineCodeCount(md) {\n  const m = (md || \"\").match(/(?<!`)`[^`\\n]+`(?!`)/g);\n  return m ? m.length : 0;\n}\n\nfunction selectMarkdown(raw, fit) {\n  const f = fit || \"\";\n  if (!f.trim()) return { text: raw, source: \"raw_markdown\", reason: \"fit_markdown is empty\" };\n  if (codeFenceCount(f) < codeFenceCount(raw)) {\n    return { text: raw, source: \"raw_markdown\", reason: \"fit_markdown dropped fenced code blocks\" };\n  }\n  if (inlineCodeCount(f) < inlineCodeCount(raw)) {\n    return { text: raw, source: \"raw_markdown\", reason: \"fit_markdown dropped inline code spans\" };\n  }\n  return { text: f, source: \"fit_markdown\", reason: \"fit_markdown preserved code content\" };\n}\n\nconst SECRET_QUERY_KEYS = new Set([\n  \"token\", \"access_token\", \"api_key\", \"apikey\", \"key\",\n  \"signature\", \"sig\", \"password\", \"secret\",\n]);\n\n// Python urllib.parse.quote_plus: keep A-Za-z0-9 _ . - ~, space -> \"+\".\nfunction quotePlus(s) {\n  return encodeURIComponent(s)\n    .replace(/[!'()*]/g, (c) => \"%\" + c.charCodeAt(0).toString(16).toUpperCase())\n    .replace(/%20/g, \"+\");\n}\n\n// Python urllib.parse.unquote_plus (errors=\"replace\" keeps bad escapes).\nfunction unquotePlus(s) {\n  const spaced = s.replace(/\\+/g, \" \");\n  try {\n    return decodeURIComponent(spaced);\n  } catch (e) {\n    return spaced.replace(/%([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));\n  }\n}\n\n// Python redact_url: parse_qsl(keep_blank_values=True) + urlencode.\nfunction redactUrl(url) {\n  const hashAt = url.indexOf(\"#\");\n  const fragment = hashAt >= 0 ? url.slice(hashAt + 1) : null;\n  const noFrag = hashAt >= 0 ? url.slice(0, hashAt) : url;\n  const qAt = noFrag.indexOf(\"?\");\n  if (qAt < 0 || qAt === noFrag.length - 1) return url;\n  const base = noFrag.slice(0, qAt);\n  const pairs = noFrag\n    .slice(qAt + 1)\n    .split(\"&\")\n    .filter((part) => part.length > 0)\n    .map((part) => {\n      const eq = part.indexOf(\"=\");\n      const k = unquotePlus(eq >= 0 ? part.slice(0, eq) : part);\n      const v = unquotePlus(eq >= 0 ? part.slice(eq + 1) : \"\");\n      return [k, SECRET_QUERY_KEYS.has(k.toLowerCase()) ? \"[REDACTED]\" : v];\n    });\n  const query = pairs.map(([k, v]) => quotePlus(k) + \"=\" + quotePlus(v)).join(\"&\");\n  return base + (query ? \"?\" + query : \"\") + (fragment ? \"#\" + fragment : \"\");\n}\n\nconst init = $(\"Init run\").first().json;\nconst health = $(\"Gateway version\").first().json;\nconst k = $json.classification;\n// A retryable failure that exhausted its budget is terminal for the operator.\nconst final = k.status === FAILED_RETRYABLE ? cls(FAILED_TERMINAL, k.failure_class, false) : k;\n\nlet markdown = null;\nif (final.status === SUCCEEDED) {\n  const r = ($json.body.results || [])[0] || {};\n  const md = r.markdown;\n  const raw = md && typeof md === \"object\" ? md.raw_markdown || \"\" : md || \"\";\n  const fit = md && typeof md === \"object\" ? md.fit_markdown || \"\" : \"\";\n  markdown = selectMarkdown(raw, fit);\n}\n\nreturn {\n  json: {\n    run_id: init.run_id,\n    source_url: redactUrl(init.url),\n    started_at: init.started_at,\n    finished_at: new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\"),\n    crawler_version: (health && typeof health.version === \"string\") ? health.version : \"unknown\",\n    config_fingerprint: \"sha256:4839b22518e9a55a6166d0893f2ba484f35dbe614d0c1ae3d58fcaba13abdf00\",\n    raw_response: $json.raw_response,\n    status: final.status,\n    failure_class: final.failure_class,\n    artifact_ref: null,\n    attempts: $json.attempt,\n    failures: $json.failures,\n    markdown,\n    checksum_input: $json.raw_response === null ? \"null\" : $json.raw_response,\n  },\n};\n"
+      },
+      "id": "finalize",
+      "name": "Finalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hash",
+        "type": "SHA256",
+        "value": "={{ $json.checksum_input }}",
+        "dataPropertyName": "raw_sha256",
+        "encoding": "hex"
+      },
+      "id": "checksum",
+      "name": "Checksum",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst out = Object.assign({}, $json);\nout.raw_checksum = \"sha256:\" + out.raw_sha256;\ndelete out.raw_sha256;\ndelete out.checksum_input;\nreturn { json: out };\n"
+      },
+      "id": "crawlrun",
+      "name": "CrawlRun",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "When called by another workflow": {
+      "main": [
+        [
+          {
+            "node": "Init run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual test": {
+      "main": [
+        [
+          {
+            "node": "Example input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Example input": {
+      "main": [
+        [
+          {
+            "node": "Init run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init run": {
+      "main": [
+        [
+          {
+            "node": "Gateway version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gateway version": {
+      "main": [
+        [
+          {
+            "node": "POST /crawl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /crawl": {
+      "main": [
+        [
+          {
+            "node": "Classify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify": {
+      "main": [
+        [
+          {
+            "node": "Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry?": {
+      "main": [
+        [
+          {
+            "node": "Backoff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backoff": {
+      "main": [
+        [
+          {
+            "node": "POST /crawl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize": {
+      "main": [
+        [
+          {
+            "node": "Checksum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checksum": {
+      "main": [
+        [
+          {
+            "node": "CrawlRun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
