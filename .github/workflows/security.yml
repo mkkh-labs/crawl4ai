@@ -42,6 +42,17 @@ jobs:
         run: |
           pytest deploy/docker/tests/test_security_*.py -q
 
+      - name: Upstream advisory and sandbox regressions
+        # GHSA-5w5p (config provenance), GHSA-wh5w/f77g (egress), robots
+        # parsing, and the Chromium sandbox switch: each lives in tests/unit and
+        # would otherwise never run in CI.
+        run: |
+          pytest tests/unit/test_config_provenance.py \
+                 tests/unit/test_egress_policy.py \
+                 tests/unit/test_robots_query_rules.py \
+                 tests/unit/test_chromium_sandbox_policy.py \
+                 deploy/docker/tests/test_gateway_pool_signature.py -q
+
   blocker-families:
     # The five v0.9.3 security blocker families, run as one explicit gate.
     #
