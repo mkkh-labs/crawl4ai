@@ -19,6 +19,8 @@ const out = cases.map((c) => {
       return ctx.retryDelaySeconds(c.attempt, c.retry_after);
     case "selectMarkdown":
       return ctx.selectMarkdown(c.raw, c.fit);
+    case "isHttpUrl":
+      return ctx.isHttpUrl(c.url);
     case "redactUrl":
       return ctx.redactUrl(c.url);
     default:

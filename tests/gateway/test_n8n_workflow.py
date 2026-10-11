@@ -231,3 +231,37 @@ def test_retry_loop_is_bounded_by_the_contract():
     classify = next(n for n in wf["nodes"] if n["name"] == "Classify")
     assert "shouldRetry(k, attempt)" in classify["parameters"]["jsCode"]
     assert "const MAX_ATTEMPTS = 3;" in classify["parameters"]["jsCode"]
+
+
+def _py_is_http_url(url: str) -> bool:
+    """The console's rule (deploy/ui/console.parse_urls) for one URL."""
+    from urllib.parse import urlsplit
+
+    if any(ch.isspace() for ch in url):
+        return False
+    parts = urlsplit(url)
+    return parts.scheme in ("http", "https") and bool(parts.hostname)
+
+
+def test_url_validation_matches_python():
+    urls = [
+        "https://example.com/",
+        "http://example.com",
+        "HTTPS://Example.com/x",
+        "https://user:pw@example.com:8443/p?q=1#f",
+        "https://example.com:8080",
+        "not-a-url",
+        "",
+        "ftp://example.com/",
+        "javascript:alert(1)",
+        "file:///etc/passwd",
+        "https://",
+        "https:///path",
+        "http://:80/",
+        "https://exa mple.com/",
+        " https://example.com/",
+        "//example.com/",
+    ]
+    got = run_js([{"fn": "isHttpUrl", "url": u} for u in urls])
+    for url, g in zip(urls, got):
+        assert g == _py_is_http_url(url), url

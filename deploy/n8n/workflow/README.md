@@ -53,9 +53,12 @@ Manual test → Example input ─────┴→ Init run → Gateway version
    `automation_internal`, and `N8N_SSRF_ALLOWED_HOSTNAMES=crawl4ai` is set.
    Without that allowance n8n's SSRF guard blocks the gateway's private
    address.
-4. **Smoke test.** Open the workflow and click *Test workflow* (it crawls
+4. **Publish** the workflow (the toggle in its header). n8n 2.x refuses to
+   run an unpublished sub-workflow from an *Execute Workflow* node ("Workflow
+   is not active and cannot be executed").
+5. **Smoke test.** Open the workflow and click *Test workflow* (it crawls
    `https://example.com/`). Expect a `CrawlRun` with `status: "succeeded"`.
-5. **Use it** from other workflows with an *Execute Workflow* node, passing
+6. **Use it** from other workflows with an *Execute Workflow* node, passing
    `{ "url": … }`. The `CrawlRun` comes back as the output.
 
 ## Regenerate and verify

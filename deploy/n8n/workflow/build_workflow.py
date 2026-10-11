@@ -47,13 +47,9 @@ def _contract_js() -> str:
 
 INIT_JS = """
 const url = String($json.url ?? "").trim();
-let valid = false;
-try {
-  const u = new URL(url);
-  valid = (u.protocol === "http:" || u.protocol === "https:") && Boolean(u.hostname);
-} catch (e) {
-  valid = false;
-}
+// The n8n Code sandbox has no global URL class, so validate like
+// urllib.parse.urlsplit: http(s) scheme and a non-empty host, no whitespace.
+const valid = isHttpUrl(url);
 if (!valid) {
   throw new Error("crawl4ai: `url` must be an absolute http(s) URL");
 }
@@ -224,7 +220,7 @@ def build(credential_id: str, example_url: str = "https://example.com/") -> dict
             "typeVersion": 3.4,
             "position": [220, 200],
         },
-        _code("Init run", init_js, [440, 100]),
+        _code("Init run", contract_js + init_js, [440, 100]),
         {
             "parameters": {
                 "url": f"{GATEWAY}/health",

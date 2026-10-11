@@ -171,3 +171,14 @@ function redactUrl(url) {
   const query = pairs.map(([k, v]) => quotePlus(k) + "=" + quotePlus(v)).join("&");
   return base + (query ? "?" + query : "") + (fragment ? "#" + fragment : "");
 }
+
+// urllib.parse.urlsplit-equivalent check: http(s) scheme and a non-empty
+// host, with no whitespace anywhere. Used to reject input before any request.
+function isHttpUrl(url) {
+  if (typeof url !== "string" || /\s/.test(url)) return false;
+  const m = /^(https?):\/\/([^/?#]*)/i.exec(url);
+  if (!m) return false;
+  const authority = m[2].replace(/^[^@]*@/, "");
+  const host = authority.replace(/:\d*$/, "");
+  return host.length > 0;
+}
