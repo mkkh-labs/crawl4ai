@@ -1,62 +1,57 @@
 # Handoff
 
-## Current state
+## Current state (2026-10-11)
 
 | Item | Value |
 |---|---|
-| Phase | DEPLOY complete; validated on this host, **not promoted** |
-| Branch | `build/crawl4ai-self-hosted-gateway` (9 commits ahead of `origin/main`, **unpushed**) |
-| Final commit | `8f9349a0ee0adb13604dcac216d99379323f4716` |
-| Image | `crawl4ai-self-hosted:0.9.3` = `sha256:4e3ec44c1e53…` |
-| Safe rollback tag | `crawl4ai-self-hosted:0.9.3-known-safe` (same image) |
-| Verdict | **CONDITIONAL GO** — every P0 gate passes except AC-13 |
-| Modules | M1–M9 complete; M10 (MCP) deferred, P2 |
+| Phase | v0.9.4 gateway deployed and validated on this host; PR open, not merged |
+| Branch | `build/crawl4ai-self-hosted-gateway`, pushed; PR [mkkh-labs/crawl4ai#1](https://github.com/mkkh-labs/crawl4ai/pull/1) into the fork's `main` |
+| CI | 9/9 required checks green; `main` protected (required checks, strict, no force-push or deletion) |
+| Gateway image | `crawl4ai-self-hosted:0.9.4`; rollback `crawl4ai-self-hosted:0.9.4-known-safe` |
+| Console | `crawl4ai-console:0.9.4` at http://127.0.0.1:8501 |
+| Evidence | `closeout-evidence-0.9.4.md`; old→new commit SHAs in `sha-map.md` |
+| Verdict | AC-01..AC-14 PASS (AC-13 with one documented nltk waiver); AC-15 not scored |
 
-A container is **still running** from this validation: `crawl4ai-crawl4ai-1` on
-the `automation_internal` network, healthy, no host port published. Stop it with
-`docker compose down` if it is not wanted.
+Superseded: the 0.9.3 state, its CONDITIONAL GO and its blocker list. v0.9.3
+is now a forbidden rollback target.
 
-The validation token lives only in this session's scratchpad
-(`token.env`, mode 600) and was never written to the repository. Rotate or
-discard it; generate a real one for production and store it in the n8n
-credential store.
+## Secrets
 
-## What blocks a full GO
+`~/.config/crawl4ai-gateway/` (0700): `gateway.env` (`CRAWL4AI_API_TOKEN=…`)
+and `api_token` (bare token, used by the console). Both rotated on
+2026-10-09. The token is never in the repo. Rotation steps: `docs/RUNBOOK.md`
+→ Operations → Secrets.
 
-1. **AC-13** — `nltk 3.10.3` / `PYSEC-2026-3740` has **no patched release**
-   (`fix_versions` empty), so it cannot be fixed by upgrading. Assessed as not
-   reachable from the gateway (zero references to any of the six affected APIs or
-   to `pathsec`). Next action: watch for a patched nltk and re-run
-   `pip-audit --strict`; or decide explicitly to accept the residual risk.
-2. **AC-15** — no scoring rubric was supplied with the packs, so the score was
-   not computed. Inventing one would be fabricated evidence. Next action: supply
-   the rubric, or drop AC-15.
+## Host state at handoff
+
+- Docker Desktop had **paused every container** (gateway, console, n8n,
+  uptime-kuma, dockge) after a host restart on 2026-10-11. This was not caused
+  by this work. Unpause before any live check.
+- The n8n change lives on local branch `chore/crawl4ai-gateway-network` in
+  `~/Developer/mkkh-labs/n8n-docker` (commit `9866c7c`, 32/32 tests pass,
+  gitleaks clean). That branch is checked out and its config is what n8n
+  runs, but it is **not merged or pushed**. Starting n8n from `main` would
+  drop the network and SSRF allowance.
+
+## Open decisions (owner)
+
+1. **Merge PR #1** (CI green, mergeable).
+2. **n8n-docker**: merge `chore/crawl4ai-gateway-network` per that repo's
+   workflow (owner review).
+3. **n8n credential**: paste the rotated token into the n8n credential used
+   by the HTTP Request node.
+4. **AC-15**: supply a rubric or drop the criterion.
+5. **F-04 `--no-sandbox`**: needs an unprivileged userns or a verified seccomp
+   profile, plus a build proving Chromium starts.
+6. **nltk waiver** lapses 2026-11-09. Re-check for a fixed release first.
 
 ## Next atomic action
 
-Push the branch and open a PR to `main`:
-
-```bash
-git push -u origin build/crawl4ai-self-hosted-gateway
-```
-
-Required checks that will run: `Security` (security-offline, blocker-families,
-posture-gate, gateway-contract) and `Supply chain` (dependency-scan, sbom,
-secret-scan, codeql, format-gateway). `dependency-scan` is expected to fail on
-the nltk finding above until it is patched or explicitly excepted.
-
-## Then, before real production traffic
-
-- Connect n8n to `automation_internal` and run `deploy/gateway/e2e.py` from the
-  n8n host itself.
-- Run a **concurrent** soak. The soak that passed was 20 sequential jobs over 2
-  URLs with no concurrency, which proves no leak under that workload only.
-- Decide on F-04 (`--no-sandbox`): needs an unprivileged userns or a verified
-  seccomp profile, plus a build confirming Chromium still starts.
-- Configure the Notion registry and Linear routing (P1). `deploy/n8n/contract.py`
-  already emits the required fields; no identifiers were fabricated.
+Unpause Docker, then regenerate machine-readable evidence: E2E from n8n's
+namespace and the 60 × 4 soak with a 720 s cooldown (RUNBOOK → Release
+gates). The earlier JSON was lost with the session scratchpad.
 
 ## Reading order for a fresh session
 
-`CLAUDE.md` → `SPEC.md` → `docs/RUNBOOK.md` → `docs/implementation/deploy-evidence.md`
-→ this file. Revalidate `git rev-parse HEAD` before editing.
+`CLAUDE.md` → `SPEC.md` → `docs/RUNBOOK.md` (Operations section) →
+`docs/implementation/closeout-evidence-0.9.4.md` → this file.
