@@ -163,3 +163,42 @@ def test_concurrent_jobs_never_share_a_body_path():
     paths = {soak.body_path_for_job() for _ in range(500)}
     assert len(paths) == 500
     assert all(p.startswith("/tmp/soak_body_") for p in paths)
+
+
+# ── unobserved samples (docker transport unavailable) ───────────────────────
+
+
+def _unobserved(t, phase):
+    return soak.Sample(t, phase, -1, -1, False, observed=False)
+
+
+def test_unobserved_samples_are_not_scored_as_unhealthy():
+    after = series([5] * 10, phase="cooldown") + [_unobserved(99.0, "cooldown")]
+    v = soak.analyse(
+        series([5] * 4, phase="baseline"), series([7] * 4, phase="traffic"), after
+    )
+    assert v.passed, v.notes
+    assert v.checks["unobserved_samples"] == 1
+    assert v.checks["unhealthy_samples"] == 0
+
+
+def test_too_many_unobserved_samples_fail_as_insufficient_evidence():
+    after = series([5] * 3, phase="cooldown") + [
+        _unobserved(float(i), "cooldown") for i in range(3)
+    ]
+    v = soak.analyse(
+        series([5] * 4, phase="baseline"), series([7] * 4, phase="traffic"), after
+    )
+    assert not v.passed
+    assert any("insufficient evidence" in n for n in v.notes)
+
+
+def test_observed_health_failure_still_fails():
+    after = series([5] * 6, phase="cooldown") + series(
+        [5], phase="cooldown", healthy=False
+    )
+    v = soak.analyse(
+        series([5] * 4, phase="baseline"), series([7] * 4, phase="traffic"), after
+    )
+    assert not v.passed
+    assert v.checks["unhealthy_samples"] == 1

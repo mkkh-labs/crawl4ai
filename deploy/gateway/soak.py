@@ -70,10 +70,18 @@ class Sample:
     browser_processes: int
     rss_bytes: int
     health_ok: bool
+    # False when the docker transport itself was unavailable for this sample
+    # (daemon or VM stalled). Such a sample says nothing about the gateway and
+    # must not be scored as either healthy or unhealthy.
+    observed: bool = True
 
 
 def sample_container(container: str, phase: str, t0: float) -> Sample:
     """One observation of browser process count and container memory."""
+    try:
+        _docker("exec", container, "true", timeout=20)
+    except Exception:
+        return Sample(round(time.time() - t0, 2), phase, -1, -1, False, observed=False)
     try:
         ps = _docker("exec", container, "ps", "-eo", "comm")
         procs = sum(
@@ -277,6 +285,10 @@ def run_job(base_url: str, token: str, url: str, timeout: int) -> JobResult:
 # ── analysis ─────────────────────────────────────────────────────────────────
 
 
+#: Above this share of unobserved samples in any phase, the soak cannot pass.
+MAX_UNOBSERVED_FRACTION = 0.2
+
+
 @dataclass
 class Verdict:
     passed: bool
@@ -289,6 +301,27 @@ def analyse(
 ) -> Verdict:
     """Fail on unbounded growth, crash/OOM, or a process count that never recovers."""
     v = Verdict(True)
+
+    # Unobserved samples (docker transport down) are excluded, never scored.
+    # Too many of them means there is not enough evidence to pass at all.
+    for name, phase in (
+        ("baseline", baseline),
+        ("traffic", during),
+        ("cooldown", after),
+    ):
+        missing = sum(1 for s in phase if not s.observed)
+        if phase and missing / len(phase) > MAX_UNOBSERVED_FRACTION:
+            v.passed = False
+            v.notes.append(
+                f"insufficient evidence: {missing}/{len(phase)} {name} samples unobserved "
+                "(docker transport unavailable)"
+            )
+    v.checks["unobserved_samples"] = sum(
+        1 for s in (baseline + during + after) if not s.observed
+    )
+    baseline = [s for s in baseline if s.observed]
+    during = [s for s in during if s.observed]
+    after = [s for s in after if s.observed]
 
     if not baseline or not during or not after:
         v.passed = False
