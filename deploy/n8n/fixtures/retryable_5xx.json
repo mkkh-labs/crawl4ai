@@ -1,0 +1,4 @@
+{
+  "http_status": 503,
+  "body": {"detail": "Server busy", "correlation_id": "cid-000000000000"}
+}

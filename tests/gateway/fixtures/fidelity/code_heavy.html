@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><title>Deploying the gateway</title></head>
+<body>
+<nav><a href="/">Home</a> <a href="/docs">Docs</a></nav>
+<main>
+<h1>Deploying the gateway</h1>
+<p>Run the container behind the private network:</p>
+<pre class="highlight"><code class="language-bash"><span class="c1"># create the network first</span>
+docker network create automation_internal
+
+docker compose up -d crawl4ai
+</code></pre>
+<p>Then verify the effective configuration:</p>
+<pre><code class="language-python">def check(config):
+    if config["limits"]["wall_clock_s"] == 0:
+        raise ValueError("unbounded deadline")
+
+    return {
+        "ok": True,
+        "depth": config["limits"]["max_depth"],
+    }
+</code></pre>
+<p>Inline <code>--no-sandbox</code> should survive too.</p>
+</main>
+<footer><p>(c) Example</p></footer>
+</body></html>

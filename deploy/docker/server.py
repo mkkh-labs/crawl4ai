@@ -116,11 +116,13 @@ if not _api_token:
 # ── default browser config helper ─────────────────────────────
 def _browser_extra_args() -> list:
     """Effective Chromium launch flags. Drops --no-sandbox when the operator
-    opts into the renderer sandbox (CRAWL4AI_CHROMIUM_SANDBOX=true)."""
-    args = list(config["crawler"]["browser"].get("extra_args", []))
-    if CHROMIUM_SANDBOX:
-        args = [a for a in args if a != "--no-sandbox"]
-    return args
+    opts into the renderer sandbox (CRAWL4AI_CHROMIUM_SANDBOX=true).
+
+    Single source shared with request-built configs (browser_defaults.py), so
+    the permanent browser and /crawl requests compute the same pool signature."""
+    from browser_defaults import server_extra_args
+
+    return server_extra_args(config, sandbox=CHROMIUM_SANDBOX)
 
 
 def get_default_browser_config() -> BrowserConfig:
@@ -211,11 +213,18 @@ async def lifespan(_: FastAPI):
     from egress_proxy import PinningProxy
     from egress_broker import set_egress_proxy
     app.state.egress_proxy = PinningProxy()
-    set_egress_proxy(await app.state.egress_proxy.start())
+    _proxy_url = await app.state.egress_proxy.start()
+    set_egress_proxy(_proxy_url)
 
-    # The pinning proxy only covers Chromium. PDFContentScrapingStrategy fetches
-    # with requests on its own, so hand the library the same destination policy
-    # or that path stays an unguarded SSRF hole.
+    # Chromium is only one of the clients that fetch a caller-chosen URL. The
+    # library's own HTTP clients -- the URL seeder (link previews, sitemaps) and
+    # RobotsParser -- take a proxy kwarg, so point them at the same pinning
+    # proxy or those paths stay unguarded SSRF holes.
+    from crawl4ai.egress_policy import set_egress_proxy as set_library_egress_proxy
+    set_library_egress_proxy(_proxy_url)
+
+    # PDFContentScrapingStrategy fetches with requests, which has no proxy hook
+    # we can rely on here, so it gets the same destination policy by injection.
     _install_pdf_egress_policy()
 
     # Bounded background-job queue (per-principal quotas optional).
@@ -232,10 +241,7 @@ async def lifespan(_: FastAPI):
     monitor_module.monitor_stats.start_persistence_worker()
 
     # Initialize browser pool
-    await init_permanent(BrowserConfig(
-        extra_args=_browser_extra_args(),
-        **config["crawler"]["browser"].get("kwargs", {}),
-    ))
+    await init_permanent(get_default_browser_config())
 
     # Start background tasks
     app.state.janitor = asyncio.create_task(janitor())

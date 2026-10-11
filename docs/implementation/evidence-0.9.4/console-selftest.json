@@ -1,0 +1,35 @@
+{
+  "health": {
+    "version": "0.9.4",
+    "safe_version": true
+  },
+  "checks": [
+    {
+      "name": "Version floor (AC-01)",
+      "passed": true,
+      "detail": "/health reports 0.9.4 (minimum 0.9.4)"
+    },
+    {
+      "name": "No token refused (AC-03)",
+      "passed": true,
+      "detail": "HTTP 401"
+    },
+    {
+      "name": "Wrong token refused (AC-03)",
+      "passed": true,
+      "detail": "HTTP 401"
+    },
+    {
+      "name": "Config laundering refused (GHSA-5w5p)",
+      "passed": true,
+      "detail": "HTTP 400 (expected 400)"
+    },
+    {
+      "name": "Metadata SSRF refused (AC-04)",
+      "passed": true,
+      "detail": "HTTP 400, classified failed_terminal/validation"
+    }
+  ],
+  "passed": 5,
+  "total": 5
+}

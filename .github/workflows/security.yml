@@ -1,30 +1,32 @@
 name: Security
 
+# Release gate for the private gateway.
+#
 # Runs the offline Docker-server security suite: behavioral tests for the
 # secure-by-default posture (R1-R7). No network, browser, Redis or Docker needed
 # - it boots the app via TestClient and monkeypatches DNS, so it is fast
 # (~seconds) and deterministic.
 
 on:
+  # No path filters. The suite is offline and fast, and a filter quietly misses
+  # security-relevant changes (crawl4ai/utils.py robots fetch,
+  # async_url_seeder.py, requirements). Its jobs are required status checks on
+  # main, so a PR that skipped them could never merge.
   push:
-    branches: [main, develop, "security/**"]
-    paths:
-      - "deploy/docker/**"
-      - "crawl4ai/async_configs.py"
-      - ".github/workflows/security.yml"
+    branches: [main, develop, "security/**", "build/**"]
   pull_request:
-    paths:
-      - "deploy/docker/**"
-      - "crawl4ai/async_configs.py"
-      - ".github/workflows/security.yml"
+
+# Least privilege: these jobs only read the checkout.
+permissions:
+  contents: read
 
 jobs:
   security-offline:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.10"
           cache: pip
@@ -40,15 +42,68 @@ jobs:
         run: |
           pytest deploy/docker/tests/test_security_*.py -q
 
+      - name: Upstream advisory and sandbox regressions
+        # GHSA-5w5p (config provenance), GHSA-wh5w/f77g (egress), robots
+        # parsing, and the Chromium sandbox switch: each lives in tests/unit and
+        # would otherwise never run in CI.
+        run: |
+          pytest tests/unit/test_config_provenance.py \
+                 tests/unit/test_egress_policy.py \
+                 tests/unit/test_robots_query_rules.py \
+                 tests/unit/test_chromium_sandbox_policy.py \
+                 deploy/docker/tests/test_gateway_pool_signature.py -q
+
+  blocker-families:
+    # The five v0.9.3 security blocker families, run as one explicit gate.
+    #
+    # This job exists because two of the five (PDF download/page/byte limits and
+    # PDF HTML escaping) live under tests/unit/ and were therefore never
+    # executed by the security-offline job's deploy/docker/tests glob. A blocker
+    # family that CI does not run is not gated.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install -r deploy/docker/requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: PDF arbitrary image-write
+        run: pytest deploy/docker/tests/test_security_pdf_image_write.py -q
+
+      - name: PDF SSRF (redirect + peer)
+        run: |
+          pytest deploy/docker/tests/test_security_ssrf_crawl.py \
+                 deploy/docker/tests/test_security_ssrf_egress.py -q
+
+      - name: PDF DoS (byte/page/wall-clock caps)
+        run: |
+          pytest tests/unit/test_pdf_download_limits.py \
+                 deploy/docker/tests/test_security_resource_caps.py -q
+
+      - name: PDF-generated HTML XSS
+        run: pytest tests/unit/test_pdf_html_escaping.py -q
+
+      - name: Playground DOM XSS
+        run: pytest deploy/docker/tests/test_security_playground_dom_xss.py -q
+
   posture-gate:
     # The headline secure-by-default acceptance gate, isolated so it can be a
     # required status check. xfail-marked items (e.g. the build-gated
     # --no-sandbox removal) do not fail this job.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.10"
           cache: pip
@@ -63,3 +118,83 @@ jobs:
       - name: Default-posture gate
         run: |
           pytest deploy/docker/tests/test_security_default_posture.py -q
+
+  gateway-contract:
+    # M2/M4-M8: private topology, n8n contract, provenance, extraction fidelity
+    # and the soak harness's own verdict logic.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install -r deploy/docker/requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Gateway topology and runtime config
+        run: pytest deploy/docker/tests/test_security_gateway_topology.py -q
+
+      - name: Observability signals
+        run: pytest deploy/docker/tests/test_security_observability.py -q
+
+      - name: n8n contract, provenance and fidelity corpus
+        run: pytest tests/gateway -q
+
+      - name: Operator console UI (Streamlit AppTest)
+        run: |
+          pip install -r deploy/ui/requirements.txt
+          pytest deploy/ui/tests -q
+
+      - name: Console compose binds host loopback only
+        env:
+          CRAWL4AI_API_TOKEN_FILE: /tmp/ci-console-token
+          CONSOLE_IMAGE: crawl4ai-console:ci-render-validation-only
+        run: |
+          printf 'ci-render-validation-only' > /tmp/ci-console-token
+          docker compose -f deploy/ui/compose.yml config --format json | python -c "
+          import json, sys
+          svc = json.load(sys.stdin)['services']['console']
+          bad = [p for p in svc.get('ports', []) if p.get('host_ip') != '127.0.0.1']
+          assert not bad, f'console published beyond loopback: {bad}'
+          assert svc.get('read_only') is True, 'console rootfs not read-only'
+          assert 'CRAWL4AI_API_TOKEN' not in (svc.get('environment') or {}), 'token passed as env var'
+          print('console topology OK')
+          "
+
+      - name: Rendered compose topology has no host-published crawler port
+        env:
+          CRAWL4AI_API_TOKEN: ci-render-validation-only
+          IMAGE: crawl4ai-self-hosted:ci-render-validation-only
+        run: |
+          docker compose config | python deploy/gateway/check_rendered_topology.py
+
+      - name: Compose refuses to render without CRAWL4AI_API_TOKEN
+        # IMAGE is set so the token is the only missing input; otherwise this
+        # step could pass because of the IMAGE requirement instead.
+        env:
+          IMAGE: crawl4ai-self-hosted:ci-render-validation-only
+        run: |
+          if out=$(docker compose config 2>&1); then
+            echo "compose rendered without a token; the gateway would start unauthenticated" >&2
+            exit 1
+          fi
+          echo "$out" | grep -q CRAWL4AI_API_TOKEN || { echo "failed for another reason: $out" >&2; exit 1; }
+          echo "compose failed closed without a token, as required"
+
+      - name: Compose refuses to render without IMAGE
+        env:
+          CRAWL4AI_API_TOKEN: ci-render-validation-only
+        run: |
+          if out=$(docker compose config 2>&1); then
+            echo "compose rendered without IMAGE; it could fall back to an unhardened image" >&2
+            exit 1
+          fi
+          echo "$out" | grep -q IMAGE || { echo "failed for another reason: $out" >&2; exit 1; }
+          echo "compose failed closed without IMAGE, as required"

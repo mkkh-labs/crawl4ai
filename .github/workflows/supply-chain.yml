@@ -1,0 +1,148 @@
+name: Supply chain
+
+# Release evidence for the private gateway (SPEC.md M9): dependency and source
+# scanning, secret scanning, and a generated SBOM.
+#
+# Every third-party action is pinned to a full 40-character commit SHA, which is
+# the only immutable Action reference. The version comment records what the SHA
+# was when it was pinned; it is documentation, not the resolution mechanism.
+
+on:
+  push:
+    branches: [main, develop, "build/**", "security/**"]
+  pull_request:
+  schedule:
+    # Advisories land after a release; a gate that only runs on push goes stale.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install project and audit tooling
+        # pip-audit audits this whole environment, including the runner's own
+        # setuptools (79.0.1 carries PYSEC-2026-3447, fixed in 83.0.0).
+        run: |
+          python -m pip install --upgrade pip "setuptools>=83"
+          pip install -e .
+          pip install -r deploy/docker/requirements.txt
+          pip install pip-audit
+
+      - name: Audit installed dependencies
+        # pip-audit exits non-zero on any finding; the gate below decides.
+        # Only advisories with no published fix may be waived, and a waiver
+        # lapses automatically when a fix ships (deploy/gateway/audit_gate.py).
+        run: |
+          pip-audit --strict --progress-spinner=off --format json \
+            --output pip-audit.json || true
+          python deploy/gateway/audit_gate.py pip-audit.json \
+            --exceptions deploy/gateway/audit-exceptions.json
+
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install project and SBOM tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install -r deploy/docker/requirements.txt
+          pip install cyclonedx-bom==7.4.0
+
+      - name: Generate SBOM
+        # Generated, never hand-edited (CLAUDE.md "NEVER edit by hand").
+        run: |
+          mkdir -p sbom
+          cyclonedx-py environment --output-format JSON --output-file sbom/sbom.cdx.json
+
+      - name: Retain SBOM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sbom-cyclonedx
+          path: sbom/sbom.cdx.json
+          if-no-files-found: error
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # gitleaks needs history to scan commits, not just the tree.
+          fetch-depth: 0
+
+      - name: Install gitleaks (pinned, checksum-verified)
+        # The gitleaks GitHub Action requires a paid license on organization
+        # accounts; the CLI itself is free. Same engine, same default rules.
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          curl -fsSLo gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks version
+
+      - name: Scan for committed credentials
+        run: ./gitleaks git . --redact --no-banner --exit-code 1
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+        with:
+          languages: python
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+
+  format-gateway:
+    # Scoped deliberately. `black --check crawl4ai deploy/docker tests` fails on
+    # the pristine upstream tree (304 of 350 files), so a repo-wide gate could
+    # only be made green by mass-reformatting unrelated upstream source -- which
+    # this project's change policy forbids. This checks the files the gateway
+    # build owns.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install black
+        run: python -m pip install --upgrade pip black
+
+      - name: Check gateway-owned files
+        run: |
+          black --check \
+            deploy/gateway \
+            deploy/n8n \
+            deploy/ui \
+            tests/gateway \
+            deploy/docker/tests/test_security_gateway_topology.py \
+            deploy/docker/tests/test_security_playground_dom_xss.py \
+            deploy/docker/tests/test_security_observability.py

@@ -1,0 +1,474 @@
+{
+  "generated_at": "2026-09-06T13:24:00Z",
+  "container": "crawl4ai-crawl4ai-1",
+  "transport": "docker-exec",
+  "jobs_requested": 20,
+  "jobs_succeeded": 20,
+  "jobs_failed": 0,
+  "latency_s": {
+    "min": 0.242,
+    "median": 0.2835,
+    "max": 0.371
+  },
+  "status_distribution": {
+    "200": 20
+  },
+  "verdict": {
+    "passed": true,
+    "checks": {
+      "baseline_browser_processes": 11.0,
+      "post_traffic_browser_processes": 11.0,
+      "allowed_post_traffic_band": 22.0,
+      "rss_monotonic_rising_after_traffic": false,
+      "rss_first_after": 677275238,
+      "rss_last_after": 644769382,
+      "unhealthy_samples": 0
+    },
+    "notes": []
+  },
+  "samples": [
+    {
+      "t": 1.11,
+      "phase": "baseline",
+      "browser_processes": 11,
+      "rss_bytes": 684195840,
+      "health_ok": true
+    },
+    {
+      "t": 7.72,
+      "phase": "baseline",
+      "browser_processes": 11,
+      "rss_bytes": 685244416,
+      "health_ok": true
+    },
+    {
+      "t": 13.82,
+      "phase": "baseline",
+      "browser_processes": 11,
+      "rss_bytes": 683671552,
+      "health_ok": true
+    },
+    {
+      "t": 19.93,
+      "phase": "baseline",
+      "browser_processes": 11,
+      "rss_bytes": 684824985,
+      "health_ok": true
+    },
+    {
+      "t": 26.29,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 686607564,
+      "health_ok": true
+    },
+    {
+      "t": 28.32,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 688390144,
+      "health_ok": true
+    },
+    {
+      "t": 30.33,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 687446425,
+      "health_ok": true
+    },
+    {
+      "t": 32.34,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 690172723,
+      "health_ok": true
+    },
+    {
+      "t": 34.35,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 692584448,
+      "health_ok": true
+    },
+    {
+      "t": 36.35,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 678428672,
+      "health_ok": true
+    },
+    {
+      "t": 38.39,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 679791820,
+      "health_ok": true
+    },
+    {
+      "t": 40.39,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 681784115,
+      "health_ok": true
+    },
+    {
+      "t": 42.41,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 682518118,
+      "health_ok": true
+    },
+    {
+      "t": 44.42,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 683986124,
+      "health_ok": true
+    },
+    {
+      "t": 46.44,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 685663846,
+      "health_ok": true
+    },
+    {
+      "t": 48.46,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 684929843,
+      "health_ok": true
+    },
+    {
+      "t": 50.46,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 687236710,
+      "health_ok": true
+    },
+    {
+      "t": 52.46,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 688704716,
+      "health_ok": true
+    },
+    {
+      "t": 54.47,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 691116441,
+      "health_ok": true
+    },
+    {
+      "t": 56.49,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 676226662,
+      "health_ok": true
+    },
+    {
+      "t": 58.52,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 678638387,
+      "health_ok": true
+    },
+    {
+      "t": 60.53,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 677904384,
+      "health_ok": true
+    },
+    {
+      "t": 62.54,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 678638387,
+      "health_ok": true
+    },
+    {
+      "t": 64.53,
+      "phase": "traffic",
+      "browser_processes": 11,
+      "rss_bytes": 677904384,
+      "health_ok": true
+    },
+    {
+      "t": 66.54,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 677275238,
+      "health_ok": true
+    },
+    {
+      "t": 72.67,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 677799526,
+      "health_ok": true
+    },
+    {
+      "t": 79.74,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 677904384,
+      "health_ok": true
+    },
+    {
+      "t": 85.85,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 677799526,
+      "health_ok": true
+    },
+    {
+      "t": 91.98,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 677065523,
+      "health_ok": true
+    },
+    {
+      "t": 98.76,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644349952,
+      "health_ok": true
+    },
+    {
+      "t": 104.88,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 645083955,
+      "health_ok": true
+    },
+    {
+      "t": 111.01,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644769382,
+      "health_ok": true
+    },
+    {
+      "t": 117.74,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644559667,
+      "health_ok": true
+    },
+    {
+      "t": 123.87,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644349952,
+      "health_ok": true
+    },
+    {
+      "t": 130.0,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644245094,
+      "health_ok": true
+    },
+    {
+      "t": 136.14,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644140236,
+      "health_ok": true
+    },
+    {
+      "t": 142.27,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644874240,
+      "health_ok": true
+    },
+    {
+      "t": 148.74,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644349952,
+      "health_ok": true
+    },
+    {
+      "t": 154.88,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644559667,
+      "health_ok": true
+    },
+    {
+      "t": 161.01,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644245094,
+      "health_ok": true
+    },
+    {
+      "t": 167.73,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644664524,
+      "health_ok": true
+    },
+    {
+      "t": 173.83,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 642043084,
+      "health_ok": true
+    },
+    {
+      "t": 179.96,
+      "phase": "cooldown",
+      "browser_processes": 11,
+      "rss_bytes": 644769382,
+      "health_ok": true
+    }
+  ],
+  "jobs": [
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.261,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.282,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.242,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.279,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.242,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.278,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.249,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.304,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.247,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.336,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.348,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.371,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.285,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.304,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.26,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.299,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.266,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.31,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.286,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.359,
+      "ok": true,
+      "error": null
+    }
+  ]
+}

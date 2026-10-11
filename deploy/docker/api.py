@@ -69,6 +69,7 @@ from crawl4ai.content_filter_strategy import (
     BM25ContentFilter,
     LLMContentFilter
 )
+from crawl4ai.content_filter_strategy_lxml import PruningContentFilterLXML
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy
 
@@ -362,7 +363,7 @@ async def handle_markdown_request(
             from llm_broker import resolve_llm
             _llm = resolve_llm(config, provider)
             content_filter = {
-                FilterType.FIT: PruningContentFilter(),
+                FilterType.FIT: PruningContentFilterLXML(),
                 FilterType.BM25: BM25ContentFilter(user_query=query or ""),
                 FilterType.LLM: LLMContentFilter(
                     llm_config=LLMConfig(
@@ -684,8 +685,13 @@ async def handle_crawl_request(
 
     try:
         urls = _normalize_and_validate_seeds(urls)
+        raw_browser_config = browser_config
         browser_config = BrowserConfig.load(browser_config, provenance=Provenance.UNTRUSTED)
         crawler_config = CrawlerRunConfig.load(crawler_config, provenance=Provenance.UNTRUSTED)
+        # Server browser policy + a pool signature that can match the
+        # permanent browser (see browser_defaults.py).
+        from browser_defaults import apply_server_browser_defaults
+        apply_server_browser_defaults(browser_config, raw_browser_config, config)
         from egress_broker import enforce_egress
         enforce_egress(browser_config)
         from governor import clamp_deep_crawl
@@ -900,11 +906,15 @@ async def handle_stream_crawl_request(
         # mirroring handle_crawl_request. The streaming path previously skipped
         # this, leaving /crawl/stream (and /crawl with stream=true) unguarded.
         urls = _normalize_and_validate_seeds(urls)
+        raw_browser_config = browser_config
         browser_config = BrowserConfig.load(
             browser_config, provenance=Provenance.UNTRUSTED
         )
         # browser_config.verbose = True # Set to False or remove for production stress testing
         browser_config.verbose = False
+        from browser_defaults import apply_server_browser_defaults
+
+        apply_server_browser_defaults(browser_config, raw_browser_config, config)
         from egress_broker import enforce_egress
 
         enforce_egress(browser_config)

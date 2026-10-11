@@ -1,0 +1,971 @@
+{
+  "generated_at": "2026-10-11T15:59:30Z",
+  "container": "crawl4ai-crawl4ai-1",
+  "transport": "docker-exec",
+  "concurrency": 4,
+  "traffic_duration_s": 20.3,
+  "throughput_jobs_per_min": 177.15,
+  "peak_browser_processes": 13,
+  "peak_rss_bytes": 922537164,
+  "jobs_requested": 60,
+  "jobs_succeeded": 60,
+  "jobs_failed": 0,
+  "latency_s": {
+    "min": 0.602,
+    "median": 0.8925000000000001,
+    "max": 2.493
+  },
+  "status_distribution": {
+    "200": 60
+  },
+  "verdict": {
+    "passed": true,
+    "checks": {
+      "unobserved_samples": 5,
+      "baseline_browser_processes": 7.0,
+      "post_traffic_browser_processes": 8,
+      "allowed_post_traffic_band": 14.0,
+      "rss_monotonic_rising_after_traffic": false,
+      "rss_first_after": 861824614,
+      "rss_last_after": 810339532,
+      "unhealthy_samples": 0
+    },
+    "notes": []
+  },
+  "samples": [
+    {
+      "t": 1.17,
+      "phase": "baseline",
+      "browser_processes": 7,
+      "rss_bytes": 742916096,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 12.49,
+      "phase": "baseline",
+      "browser_processes": 7,
+      "rss_bytes": 743020953,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 28.53,
+      "phase": "baseline",
+      "browser_processes": 7,
+      "rss_bytes": 742706380,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 40.0,
+      "phase": "baseline",
+      "browser_processes": 7,
+      "rss_bytes": 742811238,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 52.18,
+      "phase": "traffic",
+      "browser_processes": 7,
+      "rss_bytes": 851024281,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 63.68,
+      "phase": "traffic",
+      "browser_processes": 13,
+      "rss_bytes": 922537164,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 70.33,
+      "phase": "traffic",
+      "browser_processes": 8,
+      "rss_bytes": 863082905,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 72.27,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 861824614,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 84.29,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 860985753,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 95.75,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 861300326,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 107.22,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 861614899,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 118.83,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 861300326,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 130.08,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 859622604,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 141.28,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 860042035,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 152.52,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 860671180,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 163.79,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 860251750,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 175.14,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 817574707,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 186.4,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 816945561,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 197.6,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 817784422,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 208.79,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 817155276,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 220.07,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 816945561,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 231.24,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 817155276,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 242.56,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 817574707,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 253.75,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 817050419,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 265.18,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 817364992,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 276.64,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 815477555,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 288.02,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 815687270,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 299.21,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 815687270,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 310.38,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 815058124,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 321.56,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 815792128,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 332.73,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 815792128,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 343.92,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 816421273,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 355.12,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 816001843,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 366.4,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811492966,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 377.8,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 812122112,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 389.01,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811807539,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 400.27,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811283251,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 411.51,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811178393,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 422.68,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811492966,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 433.89,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811597824,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 445.06,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811807539,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 456.31,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811912396,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 467.54,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811807539,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 478.72,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 812226969,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 490.0,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811178393,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 501.26,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811807539,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 512.78,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811283251,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 524.11,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811492966,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 535.3,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811178393,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 546.52,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811912396,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 557.83,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811807539,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 569.07,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811807539,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 580.27,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811388108,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 591.46,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811702681,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 602.65,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811178393,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 613.9,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811912396,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 625.07,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811492966,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 636.27,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 811912396,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 647.45,
+      "phase": "cooldown",
+      "browser_processes": 8,
+      "rss_bytes": 810339532,
+      "health_ok": true,
+      "observed": true
+    },
+    {
+      "t": 677.45,
+      "phase": "cooldown",
+      "browser_processes": -1,
+      "rss_bytes": -1,
+      "health_ok": false,
+      "observed": false
+    },
+    {
+      "t": 707.47,
+      "phase": "cooldown",
+      "browser_processes": -1,
+      "rss_bytes": -1,
+      "health_ok": false,
+      "observed": false
+    },
+    {
+      "t": 737.48,
+      "phase": "cooldown",
+      "browser_processes": -1,
+      "rss_bytes": -1,
+      "health_ok": false,
+      "observed": false
+    },
+    {
+      "t": 767.49,
+      "phase": "cooldown",
+      "browser_processes": -1,
+      "rss_bytes": -1,
+      "health_ok": false,
+      "observed": false
+    },
+    {
+      "t": 797.5,
+      "phase": "cooldown",
+      "browser_processes": -1,
+      "rss_bytes": -1,
+      "health_ok": false,
+      "observed": false
+    }
+  ],
+  "jobs": [
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 2.447,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 2.493,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 2.439,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 2.487,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.938,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 1.006,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.825,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.893,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 1.012,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 1.272,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.852,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 1.117,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 2.077,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 1.575,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 1.407,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 1.616,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 1.149,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 1.121,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 1.102,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.97,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.841,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.84,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.823,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.766,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.821,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.892,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.775,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.794,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.89,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.926,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.766,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.792,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.967,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.987,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.917,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.912,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.975,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.96,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.906,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.855,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.719,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.764,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.711,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.697,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.752,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.781,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.752,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.717,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.693,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.876,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.668,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.859,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.602,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.832,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 0.691,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 0.735,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 1.921,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 1.652,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://example.com/",
+      "http_status": 200,
+      "latency_s": 1.621,
+      "ok": true,
+      "error": null
+    },
+    {
+      "url": "https://www.iana.org/help/example-domains",
+      "http_status": 200,
+      "latency_s": 1.567,
+      "ok": true,
+      "error": null
+    }
+  ]
+}

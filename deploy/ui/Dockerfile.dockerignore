@@ -1,0 +1,9 @@
+# BuildKit reads this instead of the root .dockerignore when building
+# deploy/ui/Dockerfile. Deny everything, then admit only what the image copies.
+*
+!deploy/ui/requirements.txt
+!deploy/ui/console.py
+!deploy/ui/app.py
+!deploy/ui/.streamlit/config.toml
+!deploy/n8n/contract.py
+!deploy/gateway/e2e.py

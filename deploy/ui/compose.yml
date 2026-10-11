@@ -1,0 +1,62 @@
+# Crawl4AI Gateway Console. Kept out of the root docker-compose.yml on purpose:
+# the gateway's topology gate forbids ANY host-published port in that file, and
+# the console needs one. It is published on host loopback only.
+#
+#   # A file holding only the gateway token (same value the gateway uses):
+#   export CRAWL4AI_API_TOKEN_FILE=~/.config/crawl4ai-gateway/api_token
+#   CONSOLE_IMAGE=crawl4ai-console:0.9.4 \
+#     docker compose -f deploy/ui/compose.yml up -d --build
+#   open http://127.0.0.1:8501
+#
+# The console has no login of its own. Anyone who can reach 127.0.0.1:8501 on
+# this host can run crawls with the gateway token, so never change the bind
+# below to 0.0.0.0 without putting an authenticating proxy in front.
+name: crawl4ai-console
+
+services:
+  console:
+    image: ${CONSOLE_IMAGE:?set CONSOLE_IMAGE, e.g. crawl4ai-console:0.9.4}
+    build:
+      context: ../..
+      dockerfile: deploy/ui/Dockerfile
+    environment:
+      CRAWL4AI_BASE_URL: http://crawl4ai:11235
+      CRAWL4AI_API_TOKEN_FILE: /run/secrets/api_token
+      CONSOLE_HISTORY_PATH: /data/history.jsonl
+    # Delivered as a file, not an env var, so it is absent from
+    # `docker inspect` and the process environment.
+    secrets:
+      - api_token
+    ports:
+      - "127.0.0.1:8501:8501"
+    networks:
+      - automation_internal
+    volumes:
+      - console_history:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/console:uid=10001,gid=10001,mode=0700
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          pids: 128
+    restart: unless-stopped
+
+volumes:
+  console_history:
+
+secrets:
+  api_token:
+    # File-sourced: Compose cannot materialize an env-sourced secret into a
+    # read-only container ("`file` is the sole supported option").
+    file: ${CRAWL4AI_API_TOKEN_FILE:?set CRAWL4AI_API_TOKEN_FILE to a file holding only the gateway token}
+
+networks:
+  automation_internal:
+    external: true

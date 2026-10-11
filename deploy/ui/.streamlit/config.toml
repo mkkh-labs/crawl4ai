@@ -1,0 +1,22 @@
+# Operator console: private, headless, no telemetry, XSRF on.
+[server]
+headless = true
+port = 8501
+address = "0.0.0.0"
+enableXsrfProtection = true
+enableCORS = true
+maxUploadSize = 1
+enableStaticServing = false
+runOnSave = false
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+
+[client]
+showErrorDetails = "none"
+toolbarMode = "minimal"
+
+[runner]
+magicEnabled = false

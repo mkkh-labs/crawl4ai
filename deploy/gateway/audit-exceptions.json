@@ -1,0 +1,13 @@
+{
+  "policy": "An advisory may be waived only while no fixed release exists, with reachability evidence and a review date. deploy/gateway/audit_gate.py fails the build as soon as a fix is published or the review date passes.",
+  "exceptions": [
+    {
+      "id": "PYSEC-2026-3740",
+      "aliases": ["CVE-2026-81726", "GHSA-8mgp-746c-j5xp"],
+      "package": "nltk",
+      "reason": "No patched nltk release exists (latest on PyPI is 3.10.3, the affected version). The flaw is path traversal in model-artifact APIs (TransitionParser, AveragedPerceptron, PerceptronTagger, maxent parameter loading) when nltk pathsec is enabled.",
+      "evidence": "2026-10-09: grep over crawl4ai/ and deploy/ finds no reference to TransitionParser, AveragedPerceptron, PerceptronTagger, maxent, pos_tag or pathsec. nltk is used only for punkt sentence/word tokenization (crawl4ai/chunking_strategy.py, crawl4ai/model_loader.py) and the unused crawl4ai/legacy/llmtxt.py. No request field reaches an nltk file path. Advisory: https://github.com/nltk/nltk/security/advisories/GHSA-8mgp-746c-j5xp",
+      "review_by": "2026-11-09"
+    }
+  ]
+}

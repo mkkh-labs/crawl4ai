@@ -1,0 +1,19 @@
+{
+  "http_status": 200,
+  "body": {
+    "success": true,
+    "results": [
+      {
+        "url": "https://example.com/docs/install",
+        "success": true,
+        "status_code": 200,
+        "html": "<html><body><h1>Install</h1><pre><code>pip install demo</code></pre></body></html>",
+        "markdown": {
+          "raw_markdown": "# Install\n\n```\npip install demo\n```\n",
+          "fit_markdown": "# Install\n\n```\npip install demo\n```\n"
+        },
+        "error_message": null
+      }
+    ]
+  }
+}
